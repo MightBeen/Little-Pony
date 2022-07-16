@@ -33,7 +33,8 @@ import java.util.PriorityQueue;
  */
 @Service
 @Slf4j
-public class PtrUserEndpointServiceImpl extends ServiceImpl<PtrUserEndpointMapper, PtrUserEndpoint> implements PtrUserEndpointService, RegularService<PtrUserEndpoint> {
+public class PtrUserEndpointServiceImpl extends ServiceImpl<PtrUserEndpointMapper, PtrUserEndpoint>
+        implements PtrUserEndpointService, RegularService<PtrUserEndpoint> {
     @Autowired
     @Lazy
     PtrEndpointService ptrEndpointService;
@@ -53,7 +54,7 @@ public class PtrUserEndpointServiceImpl extends ServiceImpl<PtrUserEndpointMappe
         List<PtrUserEndpoint> list = this.list();
         PriorityQueue<Checkable> res = new PriorityQueue<>();
 
-        list.forEach(i -> res.add(i));
+        res.addAll(list);
 
         return res;
     }

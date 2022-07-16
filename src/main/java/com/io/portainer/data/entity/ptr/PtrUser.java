@@ -1,20 +1,19 @@
 package com.io.portainer.data.entity.ptr;
 
 import com.io.portainer.common.annotation.PtrMapper;
+import com.io.portainer.common.check.Checkable;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import java.time.LocalDateTime;
+
 /**
- * <p>
- * 
- * </p>
- *
  * @author me
  * @since 2022-07-10
  */
 @Data
 @EqualsAndHashCode(callSuper = false)
-public class PtrUser extends PtrBaseEntity{
+public class PtrUser extends PtrBaseEntity implements Checkable {
 
     private static final long serialVersionUID = 1L;
 
@@ -40,4 +39,9 @@ public class PtrUser extends PtrBaseEntity{
      */
     private String remark;
 
+    @Override
+    public LocalDateTime getExpired() {
+        // 永不过期
+        return LocalDateTime.now().plusDays(1);
+    }
 }

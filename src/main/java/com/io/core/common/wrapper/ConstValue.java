@@ -13,4 +13,11 @@ public final class ConstValue {
     public static final Integer GROUP_RESOURCE = 3030;
     public static final Integer SINGLE_RESOURCE = 1010;
 
+    // 独占型资源最大容量
+    public static final Integer SINGLE_RESOURCE_CAPACITY = 1;
+
+    //CheckList 中类型，等待队列为0，错误队列为1，已完成为2
+    public static final Long WAIT_LIST_TYPE = 0L;
+    public static final Long ERROR_LIST_TYPE = 1L;
+    public static final Long FINISHED_LIST_TYPE = 2L;
 }

@@ -13,5 +13,5 @@ import com.baomidou.mybatisplus.extension.service.IService;
  */
 public interface SysCheckListService extends IService<SysCheckList> {
 
-    SysCheckList AddItemToCheckList(SysCheckList item);
+    SysCheckList AddItemToWaitList(SysCheckList item, Integer resourceType, Integer day, Long jobId);
 }

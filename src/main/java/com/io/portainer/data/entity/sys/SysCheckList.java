@@ -1,10 +1,13 @@
 package com.io.portainer.data.entity.sys;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
+import com.io.portainer.common.check.Checkable;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -18,7 +21,7 @@ import lombok.EqualsAndHashCode;
  */
 @Data
 @EqualsAndHashCode(callSuper = false)
-public class SysCheckList implements Serializable {
+public class SysCheckList implements Serializable{
 
     private static final long serialVersionUID = 1L;
 
@@ -38,7 +41,7 @@ public class SysCheckList implements Serializable {
     /**
      * 类型，如1为发生异常，2为资源分配等待
      */
-    private Integer type;
+    private Long type;
 
     /**
      * 相关信息
@@ -51,4 +54,16 @@ public class SysCheckList implements Serializable {
     private Integer status;
 
     private LocalDateTime created;
+
+    /**
+     * 相关资源类型
+     */
+    private Integer relatedResourceType;
+
+    /**
+     * 对应等待队列中id
+     *
+     */
+    private Long waitListId;
+
 }

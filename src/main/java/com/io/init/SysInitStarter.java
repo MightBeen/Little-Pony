@@ -24,14 +24,11 @@ public class SysInitStarter {
         initializeDataCacheManager();
     }
 
-    // TODO: 调用updateManager执行更新
-
     /**
      * 从portainer 中更新数据到管理系统数据库
      */
+    @Deprecated
     private void initializeUserDataFromPortainer() {
-        ptrUserService.updateUsersFromPtr();
-        ptrEndpointService.updatePtrEndpointsDataFromPtr();
     }
 
     /**

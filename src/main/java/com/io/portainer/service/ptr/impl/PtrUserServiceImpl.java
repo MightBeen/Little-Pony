@@ -3,6 +3,8 @@ package com.io.portainer.service.ptr.impl;
 import cn.hutool.http.HttpException;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.io.core.common.wrapper.ConstValue;
+import com.io.portainer.common.check.Checkable;
+import com.io.portainer.common.check.RegularService;
 import com.io.portainer.common.exception.ApplyConflictedException;
 import com.io.portainer.common.exception.PortainerException;
 import com.io.portainer.common.utils.CommonUtils;
@@ -12,12 +14,14 @@ import com.io.portainer.data.entity.sys.SysCheckList;
 import com.io.portainer.data.entity.ptr.PtrEndpoint;
 import com.io.portainer.data.entity.ptr.PtrUser;
 import com.io.portainer.data.entity.ptr.PtrUserEndpoint;
+import com.io.portainer.data.entity.sys.SysWaitList;
 import com.io.portainer.mapper.ptr.PtrUserMapper;
 import com.io.portainer.service.ptr.PtrEndpointService;
 import com.io.portainer.service.ptr.PtrUserEndpointService;
 import com.io.portainer.service.ptr.PtrUserService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.io.portainer.service.sys.SysCheckListService;
+import com.io.portainer.service.sys.SysWaitListService;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
@@ -30,6 +34,7 @@ import java.lang.reflect.Field;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.PriorityQueue;
 
 /**
  * <p>
@@ -41,7 +46,8 @@ import java.util.List;
  */
 @Service
 @Slf4j
-public class PtrUserServiceImpl extends ServiceImpl<PtrUserMapper, PtrUser> implements PtrUserService {
+public class PtrUserServiceImpl extends ServiceImpl<PtrUserMapper, PtrUser>
+        implements PtrUserService, RegularService<PtrUser> {
 
     @Autowired
     PortainerConnector portainerConnector;
@@ -54,6 +60,9 @@ public class PtrUserServiceImpl extends ServiceImpl<PtrUserMapper, PtrUser> impl
 
     @Autowired
     PtrUserEndpointService ptrUserEndpointService;
+
+    @Autowired
+    SysWaitListService sysWaitListService;
 
     private final String baseUrl = "/users";
 
@@ -106,7 +115,7 @@ public class PtrUserServiceImpl extends ServiceImpl<PtrUserMapper, PtrUser> impl
     }
 
     /**
-     * 从portainer中获取并更新管理系统中数据库用户表。初始化时会调用
+     * 从portainer中获取并更新管理系统中数据库用户表。仅由UpdateMananger调用
      */
     @Override
     @Transactional
@@ -184,7 +193,7 @@ public class PtrUserServiceImpl extends ServiceImpl<PtrUserMapper, PtrUser> impl
     @Override
     @Transactional
     public boolean getEndPointAccessById(PtrUser ptrUser, int resourceType, int day) throws IOException {
-        if (ptrUser == null) throw new IllegalArgumentException("ptrUser cannot be null");
+        if (ptrUser == null || ptrUser.getJobId() == null) throw new IllegalArgumentException("ptrUser or jobId cannot be null");
         if (ptrUser.getRole() == 1) {
             throw new IllegalArgumentException("申请用户不能为管理员");
         }
@@ -194,18 +203,22 @@ public class PtrUserServiceImpl extends ServiceImpl<PtrUserMapper, PtrUser> impl
         if (!user_ids01.isEmpty()) {
             throw new ApplyConflictedException("重复申请 ：" + ptrUser.getUsername());
         }
+
+
         // 检查等待队列
-        List<SysCheckList> user_ids02 = sysCheckListService.list(new QueryWrapper<SysCheckList>().eq("type", 0));
+        List<SysWaitList> waitlist = sysWaitListService.list(new QueryWrapper<SysWaitList>().eq("job_id", ptrUser.getJobId()));
 
-        for (SysCheckList user_id : user_ids02) {
-            if(ptrUser.getId().equals(user_id.getRelatedUserId()))
-                throw new IllegalArgumentException("已在等待队列中：" + ptrUser.getUsername());
-        }
+        if(waitlist.size() > 0)
+            // TODO: 新建一个异常类
+            throw new IllegalArgumentException("已在等待队列中：" + ptrUser.getUsername());
 
+        // 当申请资源为共享型时
         if (resourceType == ConstValue.GROUP_RESOURCE) {
-            // todo: implements this method;
+            // todo: 完成共享型资源调度;
 
-        } else if (resourceType == ConstValue.SINGLE_RESOURCE) {
+        }
+        // 当申请资源类型为独占型时
+        else if (resourceType == ConstValue.SINGLE_RESOURCE) {
             List<PtrEndpoint> target = ptrEndpointService.getPtrEndpoints();
 
             for (PtrEndpoint endpoint : target) {
@@ -213,14 +226,15 @@ public class PtrUserServiceImpl extends ServiceImpl<PtrUserMapper, PtrUser> impl
                 // TODO: 将这一部分也添加仅队列，由队列进行分配
                 List<Long> userIds = endpoint.getUserIds();
 
-                if (userIds.size() == 0 && endpoint.getStatus() == 1) {
-
+                if (userIds.size() < ConstValue.SINGLE_RESOURCE_CAPACITY && endpoint.getStatus() == 1) {
                     userIds.add(ptrUser.getId());
+
                     Response response = portainerConnector.putRequest("/endpoints/" + endpoint.getId(), CommonUtils.portainerFormatWrapper(userIds));
                     if (response.code() != 200) {
                         // TODO：填入队列并联系管理员
                         throw new PortainerException(response.toString());
                     }
+
                     PtrUserEndpoint chain = new PtrUserEndpoint();
                     chain.setCreated(LocalDateTime.now());
                     chain.setEndpointId(endpoint.getId());
@@ -239,8 +253,9 @@ public class PtrUserServiceImpl extends ServiceImpl<PtrUserMapper, PtrUser> impl
             item.setCreated(LocalDateTime.now());
             item.setMessage(ptrUser.getRemark());
             item.setRelatedUserId(ptrUser.getId());
-            item.setType(0);
-            sysCheckListService.AddItemToCheckList(item);
+//            item.setType(Long.valueOf(ConstValue.WAIT_LIST_TYPE));
+            item.setRelatedResourceType(resourceType);
+            sysCheckListService.AddItemToWaitList(item, resourceType, day, ptrUser.getJobId());
         } else {
             throw new IllegalArgumentException("资源类型不可用: " + resourceType);
         }
@@ -254,7 +269,6 @@ public class PtrUserServiceImpl extends ServiceImpl<PtrUserMapper, PtrUser> impl
     @Override
     @Transactional
     public PtrUser addPtrUserToPtr(PtrUser u) throws IOException {
-
         // TODO 完成自定义序列化
         PtrJsonParser<PtrUser> parser = new PtrJsonParser<PtrUser>(PtrUser.class);
         String body = parser.getObjectMapper().writeValueAsString(u);
@@ -276,15 +290,34 @@ public class PtrUserServiceImpl extends ServiceImpl<PtrUserMapper, PtrUser> impl
             SysCheckList item = new SysCheckList();
 
             item.setCreated(LocalDateTime.now());
-            item.setMessage(e.getMessage());
+            item.setMessage(response.code() + e.getMessage());
             item.setRelatedUserId(u.getId());
-            item.setType(response.code());
-            sysCheckListService.AddItemToCheckList(item);
+            item.setType(Long.valueOf(ConstValue.ERROR_LIST_TYPE));
+            sysCheckListService.save(item);
 
+            response.close();
             throw e;
         }
         u.setCreated(LocalDateTime.now());
         save(u);
         return u;
+    }
+
+    /**
+     * 更新用户表并更新缓存队列
+     * @return
+     */
+    @Override
+    public PriorityQueue<Checkable> updateAll() {
+        List<PtrUser> ptrUsers = updateUsersFromPtr();
+        PriorityQueue<Checkable> queue = new PriorityQueue<>();
+
+        queue.addAll(ptrUsers);
+        return queue;
+    }
+
+    @Override
+    public void deleteItem(Checkable item) {
+        log.warn("此方法不应该被调用");
     }
 }

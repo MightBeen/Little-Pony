@@ -11,7 +11,7 @@ import lombok.EqualsAndHashCode;
 
 /**
  * <p>
- * 
+ * 该数据会随着Endpoint更新
  * </p>
  *
  * @author me

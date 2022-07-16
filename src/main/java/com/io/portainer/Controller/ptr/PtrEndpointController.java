@@ -23,10 +23,5 @@ import java.util.List;
 @RequestMapping("/api/ptr/endpoint")
 public class PtrEndpointController extends PtrBaseController {
 
-    @GetMapping("/fresh")
-    public ResultWrapper freshEndpoints() {
-        // todo: 将更新交由UpdateManager处理
-        return ResultWrapper.success(ptrEndpointService.updatePtrEndpointsDataFromPtr());
-    }
 
 }

@@ -7,11 +7,13 @@ import com.io.portainer.common.exception.PortainerException;
 import com.io.portainer.common.utils.CommonUtils;
 import com.io.portainer.common.utils.PortainerConnector;
 import com.io.portainer.data.entity.ptr.PtrEndpoint;
+import com.io.portainer.data.entity.ptr.PtrUser;
 import com.io.portainer.data.entity.ptr.PtrUserEndpoint;
 import com.io.portainer.mapper.ptr.PtrUserEndpointMapper;
 import com.io.portainer.service.ptr.PtrEndpointService;
 import com.io.portainer.service.ptr.PtrUserEndpointService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.io.portainer.service.ptr.PtrUserService;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Response;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +22,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.PriorityQueue;
 
@@ -40,23 +44,43 @@ public class PtrUserEndpointServiceImpl extends ServiceImpl<PtrUserEndpointMappe
     PtrEndpointService ptrEndpointService;
 
     @Autowired
+    @Lazy
+    PtrUserService ptrUserService;
+
+    @Autowired
     PortainerConnector portainerConnector;
 
     /**
      * 顺便会更新节点
      */
     @Override
+    @Transactional
     public PriorityQueue<Checkable> updateAll() {
         // 先执行节点的更新
-        ptrEndpointService.updatePtrEndpointsDataFromPtr();
+        List<PtrEndpoint> endpoints = ptrEndpointService.updatePtrEndpointsDataFromPtr();
 
-        // 获取更新后的数据
-        List<PtrUserEndpoint> list = this.list();
-        PriorityQueue<Checkable> res = new PriorityQueue<>();
+        // 处理僵尸用户
+        endpoints.forEach(e ->{
+            Iterator<Long> it = e.getUserIds().iterator();
+            boolean updated = false;
+            while (it.hasNext()) {
+                Long userid = it.next();
+                PtrUser user = ptrUserService.getById(userid);
+                if (user == null){
+                    updated = true;
+                    log.info("User :" + userid + "不存在，自动回收其访问权限");
+                    this.remove(new QueryWrapper<PtrUserEndpoint>()
+                            .eq("user_id", userid));
+                    it.remove();
+                }
+            }
+            // 如果执行过删除，则更新ptr
+            if (updated) {
+                updateUserAccessOfPtr(e);
+            }
+        });
 
-        res.addAll(list);
-
-        return res;
+        return new PriorityQueue<>(this.list());
     }
 
     @Override
@@ -72,11 +96,14 @@ public class PtrUserEndpointServiceImpl extends ServiceImpl<PtrUserEndpointMappe
             throw new RuntimeException("删除失败！" + "  id："+ item.getId() + "detail：" + item);
         }
 
+        updateUserAccessOfPtr(e);
+    }
 
-        String json = CommonUtils.portainerFormatWrapper(e.getUserIds());
+    public void updateUserAccessOfPtr(PtrEndpoint endpoint){
+        String json = CommonUtils.portainerFormatWrapper(endpoint.getUserIds());
 
         try {
-            Response response = portainerConnector.putRequest("/endpoints/" + e.getId(), json);
+            Response response = portainerConnector.putRequest("/endpoints/" + endpoint.getId(), json);
             log.info("Portainer response: " + response.toString());
             log.info(response.body().string());
             response.close();

@@ -2,6 +2,8 @@ package com.io.portainer.common.utils;
 
 import com.io.core.common.wrapper.ConstValue;
 import com.io.portainer.data.entity.ptr.PtrBaseEntity;
+import com.io.portainer.data.entity.ptr.PtrEndpoint;
+import com.io.portainer.data.entity.ptr.PtrUserEndpoint;
 import com.io.portainer.data.entity.ptr.ResourceType;
 
 import java.util.ArrayList;
@@ -14,6 +16,22 @@ public class CommonUtils {
         return ids;
     }
 
+    /**
+     * // 将新数据打平
+     */
+    public static List<PtrUserEndpoint> flatEndpoints(List<PtrEndpoint> endpoints) {
+        List<PtrUserEndpoint> ueList = new ArrayList<>();
+
+        endpoints.forEach(e -> {
+            e.getUserIds().forEach(userId ->{
+                PtrUserEndpoint data = new PtrUserEndpoint();
+                data.setEndpointId(e.getId());
+                data.setUserId(userId);
+                ueList.add(data);
+            });
+        });
+        return ueList;
+    }
 
     public static String portainerFormatWrapper(List<Long> accessId) {
         String prefix = "{\"UserAccessPolicies\": {";

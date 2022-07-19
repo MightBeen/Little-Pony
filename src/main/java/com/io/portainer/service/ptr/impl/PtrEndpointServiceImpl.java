@@ -18,7 +18,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.xml.ws.Endpoint;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.time.LocalDateTime;
@@ -91,7 +90,6 @@ public class PtrEndpointServiceImpl extends ServiceImpl<PtrEndpointMapper, PtrEn
         List<PtrEndpoint> newEndpoints = null;
 
         Response ptrResponse;
-        // TODO: 2022/7/18 如果发现僵尸用户就开新线程删除
         try {
             ptrResponse = portainerConnector.getRequest(baseUrl);
 
@@ -140,17 +138,7 @@ public class PtrEndpointServiceImpl extends ServiceImpl<PtrEndpointMapper, PtrEn
             // ue表所有数据
             List<PtrUserEndpoint> preUeLists = ptrUserEndpointService.list();
 
-            List<PtrUserEndpoint> newUeLists = new ArrayList<>();
-
-            // 将新数据打平
-            ptrEndpointList.forEach(e -> {
-                e.getUserIds().forEach(userId ->{
-                    PtrUserEndpoint data = new PtrUserEndpoint();
-                    data.setEndpointId(e.getId());
-                    data.setUserId(userId);
-                    newUeLists.add(data);
-                });
-            });
+            List<PtrUserEndpoint> newUeLists = CommonUtils.flatEndpoints(ptrEndpointList);
 
             // TODO：优化搜索过程
             newUeLists.forEach(newItem -> {

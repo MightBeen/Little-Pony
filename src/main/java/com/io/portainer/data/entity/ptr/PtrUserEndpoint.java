@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import java.time.LocalDateTime;
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.io.portainer.common.check.Checkable;
 import lombok.Data;
@@ -29,5 +31,6 @@ public class PtrUserEndpoint extends PtrBaseEntity implements Checkable {
     private Long endpointId;
 
     private LocalDateTime expired;
+
 
 }

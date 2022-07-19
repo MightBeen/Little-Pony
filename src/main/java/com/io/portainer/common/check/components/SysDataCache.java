@@ -10,9 +10,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Type;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.PriorityQueue;
+import java.util.*;
 
 @Component
 @Slf4j
@@ -25,14 +23,17 @@ public class SysDataCache {
 
     private HashMap<Type, CacheUnit> unitMaps = new HashMap<>();
 
+    private List<RegularService> orderList = new ArrayList<>();
+
 
     /**
      * 注册缓存容器
-     * @param type 实现checkable的实体类型
+     *
+     * @param type    实现checkable的实体类型
      * @param service 对应service类
-     * @param queue 对应队列
+     * @param queue   对应队列
      */
-    public void registeredSysCache(Type type, RegularService<Checkable> service, PriorityQueue<Checkable> queue) {
+    private void registeredSysCache(Type type, RegularService<Checkable> service, PriorityQueue<Checkable> queue) {
         if (queue == null) {
             throw new IllegalArgumentException("queue must not be null");
         }
@@ -48,19 +49,20 @@ public class SysDataCache {
 
 
     /**
-     * 通过类型获取对应容器
+     * 通过类型获取对应容器，仅同包类可使用
      */
-    public PriorityQueue<Checkable> getPriorityQueue(Type type) {
+    PriorityQueue<Checkable> getPriorityQueue(Type type) {
         return unitMaps.get(type).queue;
     }
 
 
     /**
-     * 指定更新某一实体类型的容器
+     * 指定更新某一实体类型的容器，仅同包下可用
      */
-    public boolean updateCache(Type type, PriorityQueue<Checkable> data) {
+    boolean updateCache(Type type, PriorityQueue<Checkable> data) {
         CacheUnit cacheUnit = unitMaps.get(type);
         if (cacheUnit == null) {
+            log.error("\"" + type + "\" 对应缓存单元为空");
             return false;
         }
         cacheUnit.queue = data;
@@ -69,27 +71,44 @@ public class SysDataCache {
 
 
     /**
+     * 获取orderList，仅同包下可用
+     *
+     * @return
+     */
+    List<RegularService> getOrderList() {
+        return this.orderList;
+    }
+
+
+    /**
      * 初始化时会自动配置容器
      */
-    public void init(){
+    public void init() {
         if (this.initialized) {
             log.warn("CacheUnit is already initialized");
             return;
         }
-
         this.initialized = true;
 
-        this.unitMaps = new HashMap<>();
 
+        // 初始化缓存单元
+        this.unitMaps = new HashMap<>();
         Map<String, RegularService> map = beans.getBeansOfType(RegularService.class);
 
-        for(String bean : map.keySet()){
-            RegularService service = map.get(bean);
-            Type type = service.getType();
+        for (String bean : map.keySet()) {
+            orderList.add(map.get(bean));
+        }
+        // 按order排序
+        orderList.sort((o1, o2) -> Integer.compare(o1.getOrder(), o2.getOrder()));
 
+        // 按顺序执行更新
+        orderList.forEach(service -> {
+            Type type = service.getType();
             PriorityQueue<Checkable> queue = service.updateAll();
             this.registeredSysCache(type, service, queue);
-        }
+            log.info("初始化完成：" + type);
+        });
+
     }
 
     /**

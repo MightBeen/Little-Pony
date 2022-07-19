@@ -13,7 +13,7 @@ public abstract class PtrBaseEntity {
 //    @TableId(type = IdType.)
     private Long id;
 
-    private LocalDateTime created;
+    private LocalDateTime created = LocalDateTime.now();
 
     private LocalDateTime updated;
 }

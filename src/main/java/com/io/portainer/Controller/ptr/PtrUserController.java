@@ -48,11 +48,8 @@ public class PtrUserController extends PtrBaseController {
 
             Boolean res = ptrUserService.getEndPointAccessById(ptrUser, wosUser.getResourceType(), wosUser.getApplyDays());
 
-            if (!res) {
-                return ResultWrapper.success(203, "目标资源已满，已加入资源等待队列", ptrUser);
-            }
 
-            return ResultWrapper.success(ptrUser);
+            return ResultWrapper.success( "操作成功，申请已在处理",ptrUser);
         } else if (wosUser.getBusinessType().equals(BusinessType.GPU_RENEWAL.code)) {
             // TODO：添加续期业务
             throw new IllegalArgumentException("不支持的业务类型："+wosUser.getBusinessType());

@@ -89,4 +89,8 @@ public class PtrUserEndpointServiceImpl extends ServiceImpl<PtrUserEndpointMappe
         }
     }
 
+    @Override
+    public int getOrder() {
+        return 1;
+    }
 }

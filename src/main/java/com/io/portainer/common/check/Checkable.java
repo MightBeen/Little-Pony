@@ -12,10 +12,12 @@ public interface Checkable extends Comparable<Checkable>{
 
     /**
      * 获取过期时间，如果过期时间小于当前时间，则执行删除
-     * @return
      */
     LocalDateTime getExpired();
 
+    /**
+     * 可以重写此方法决定待检查实体类在队列中优先级。默认为过期时间最近的在队列头部
+     */
     @Override
     default int compareTo(Checkable o) {
         LocalDateTime expired = getExpired();

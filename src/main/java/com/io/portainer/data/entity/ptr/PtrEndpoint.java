@@ -2,6 +2,7 @@ package com.io.portainer.data.entity.ptr;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.io.portainer.common.annotation.PtrMapper;
+import com.io.portainer.common.utils.CommonUtils;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -37,7 +38,7 @@ public class PtrEndpoint extends PtrBaseEntity{
     /**
      * 资源类型，1010为独占型，3030为共享型
      */
-    private int resourceType;
+    private Integer resourceType;
 
 
     private String description;
@@ -55,4 +56,17 @@ public class PtrEndpoint extends PtrBaseEntity{
     @TableField(exist = false)
     @PtrMapper(ptrAlias = "UserAccessPolicies")
     private List<Long> userIds = new ArrayList<>();
+
+
+
+    public boolean available(Integer resourceType) {
+        return this.getStatus().equals(1)
+                && resourceType.equals(this.getResourceType())
+                && this.getUserIds().size() < CommonUtils.getCapacity(resourceType);
+    }
+
+    public int getSpace(){
+        int res = CommonUtils.getCapacity(this.getResourceType()) - this.getUserIds().size();
+        return Math.max(res, 0);
+    }
 }

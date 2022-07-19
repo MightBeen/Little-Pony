@@ -2,6 +2,7 @@ package com.io.portainer.service.ptr.impl;
 
 import cn.hutool.http.HttpException;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.io.portainer.common.exception.PortainerException;
 import com.io.portainer.common.utils.CommonUtils;
 import com.io.portainer.common.utils.PortainerConnector;
 import com.io.portainer.common.utils.PtrJsonParser;
@@ -90,7 +91,7 @@ public class PtrEndpointServiceImpl extends ServiceImpl<PtrEndpointMapper, PtrEn
         List<PtrEndpoint> newEndpoints = null;
 
         Response ptrResponse;
-
+        // TODO: 2022/7/18 如果发现僵尸用户就开新线程删除
         try {
             ptrResponse = portainerConnector.getRequest(baseUrl);
 
@@ -105,7 +106,7 @@ public class PtrEndpointServiceImpl extends ServiceImpl<PtrEndpointMapper, PtrEn
                     edp.setCreated(LocalDateTime.now());
                 }
             } else {
-                throw new HttpException("Portainer 连接异常: " + ptrResponse.code());
+                throw new PortainerException("Portainer 连接异常: " + ptrResponse.code());
             }
 
             dbEndpoints = this.list();

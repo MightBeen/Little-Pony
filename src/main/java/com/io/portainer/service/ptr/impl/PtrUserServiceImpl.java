@@ -204,61 +204,24 @@ public class PtrUserServiceImpl extends ServiceImpl<PtrUserMapper, PtrUser>
             throw new ApplyConflictedException("重复申请 ：" + ptrUser.getUsername());
         }
 
-
         // 检查等待队列
-        List<SysWaitList> waitlist = sysWaitListService.list(new QueryWrapper<SysWaitList>().eq("job_id", ptrUser.getJobId()));
+        List<SysWaitList> waitList = sysWaitListService.list(new QueryWrapper<SysWaitList>().eq("job_id", ptrUser.getJobId()));
 
-        if(waitlist.size() > 0)
+        // 检查申请资源类型是否有效
+        CommonUtils.getCapacity(resourceType);
+
+        if(waitList.size() > 0)
             // TODO: 新建一个异常类
             throw new IllegalArgumentException("已在等待队列中：" + ptrUser.getUsername());
 
-        // 当申请资源为共享型时
-        if (resourceType == ConstValue.GROUP_RESOURCE) {
-            // todo: 完成共享型资源调度;
+        // 校验完成，添入队列
+        SysCheckList item = new SysCheckList();
 
-        }
-        // 当申请资源类型为独占型时
-        else if (resourceType == ConstValue.SINGLE_RESOURCE) {
-            List<PtrEndpoint> target = ptrEndpointService.getPtrEndpoints();
-
-            for (PtrEndpoint endpoint : target) {
-                // 当前没有用户在使用，且处于开启状态的资源筛选
-                // TODO: 将这一部分也添加仅队列，由队列进行分配
-                List<Long> userIds = endpoint.getUserIds();
-
-                if (userIds.size() < ConstValue.SINGLE_RESOURCE_CAPACITY && endpoint.getStatus() == 1) {
-                    userIds.add(ptrUser.getId());
-
-                    Response response = portainerConnector.putRequest("/endpoints/" + endpoint.getId(), CommonUtils.portainerFormatWrapper(userIds));
-                    if (response.code() != 200) {
-                        // TODO：填入队列并联系管理员
-                        throw new PortainerException(response.toString());
-                    }
-
-                    PtrUserEndpoint chain = new PtrUserEndpoint();
-                    chain.setCreated(LocalDateTime.now());
-                    chain.setEndpointId(endpoint.getId());
-                    chain.setUserId(ptrUser.getId());
-
-                    // TODO ： 设置过期时间
-                    chain.setExpired(LocalDateTime.now().plusDays(day));
-                    ptrUserEndpointService.save(chain);
-
-                    return true;
-                }
-            }
-            // 无符合条件资源，添入队列
-            SysCheckList item = new SysCheckList();
-
-            item.setCreated(LocalDateTime.now());
-            item.setMessage(ptrUser.getRemark());
-            item.setRelatedUserId(ptrUser.getId());
-//            item.setType(Long.valueOf(ConstValue.WAIT_LIST_TYPE));
-            item.setRelatedResourceType(resourceType);
-            sysCheckListService.AddItemToWaitList(item, resourceType, day, ptrUser.getJobId());
-        } else {
-            throw new IllegalArgumentException("资源类型不可用: " + resourceType);
-        }
+        item.setCreated(LocalDateTime.now());
+        item.setMessage(ptrUser.getRemark());
+        item.setRelatedUserId(ptrUser.getId());
+        item.setRelatedResourceType(resourceType);
+        sysCheckListService.AddItemToWaitList(item, resourceType, day, ptrUser.getJobId());
 
         return false;
     }
@@ -298,22 +261,27 @@ public class PtrUserServiceImpl extends ServiceImpl<PtrUserMapper, PtrUser>
             response.close();
             throw e;
         }
+        response.close();
         u.setCreated(LocalDateTime.now());
         save(u);
         return u;
     }
 
+    @Override
+    public int getOrder() {
+        return 0;
+    }
+
     /**
-     * 更新用户表并更新缓存队列
+     * 更新用户表
      * @return
      */
     @Override
+    @Transactional
     public PriorityQueue<Checkable> updateAll() {
         List<PtrUser> ptrUsers = updateUsersFromPtr();
-        PriorityQueue<Checkable> queue = new PriorityQueue<>();
-
-        queue.addAll(ptrUsers);
-        return queue;
+        // ptrUser 不需要定期删除，故直接返回空队列
+        return new PriorityQueue<>();
     }
 
     @Override

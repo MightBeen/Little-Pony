@@ -22,19 +22,19 @@ public class ResultWrapper {
     public static ResultWrapper success(int code ,String msg, Object data ){
         return new ResultWrapper(code, msg, data);
     }
-
     public static ResultWrapper success(Object data ){
         return new ResultWrapper(200, "操作成功", data);
+    }
+    public static ResultWrapper success(String message, Object data ){
+        return new ResultWrapper(200, message, data);
     }
 
     public static ResultWrapper fail(int code ,String msg, Object data ) {
         return new ResultWrapper(code, msg, data);
     }
-
     public static ResultWrapper fail(int code ,String msg) {
         return new ResultWrapper(code, msg, null);
     }
-
     public static ResultWrapper fail(String msg) {
         return new ResultWrapper(400, msg, null);
     }

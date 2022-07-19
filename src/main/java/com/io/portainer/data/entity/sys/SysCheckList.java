@@ -55,6 +55,8 @@ public class SysCheckList implements Serializable{
 
     private LocalDateTime created;
 
+    private LocalDateTime updated;
+
     /**
      * 相关资源类型
      */

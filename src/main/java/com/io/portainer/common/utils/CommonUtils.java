@@ -1,6 +1,8 @@
 package com.io.portainer.common.utils;
 
+import com.io.core.common.wrapper.ConstValue;
 import com.io.portainer.data.entity.ptr.PtrBaseEntity;
+import com.io.portainer.data.entity.ptr.ResourceType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,5 +30,28 @@ public class CommonUtils {
         chars[chars.length - 1] = '}';
 
         return String.valueOf(chars) + "}";
+    }
+
+    // TODO: 2022/7/18 将此方法一起加到工厂中
+    public static int getCapacity(Integer resourceType) {
+        int res;
+        if (ConstValue.SINGLE_RESOURCE.equals(resourceType)) {
+            res = ConstValue.SINGLE_RESOURCE_CAPACITY;
+        }
+        else if (ConstValue.GROUP_RESOURCE.equals(resourceType)) {
+            throw new IllegalArgumentException("还没做");
+        }
+        else
+            throw new IllegalArgumentException("Invalid resource type: " + resourceType);
+        return res;
+    }
+
+
+    public static List<Integer> resourceTypeCodes(){
+        List<Integer> result = new ArrayList<Integer>();
+        for (ResourceType type : ResourceType.values()) {
+            result.add(type.code);
+        }
+        return result;
     }
 }

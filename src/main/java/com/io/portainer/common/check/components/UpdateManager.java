@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Type;
 import java.util.HashMap;
+import java.util.List;
 import java.util.PriorityQueue;
 
 
@@ -22,7 +23,7 @@ public class UpdateManager implements FixedTickCheck {
     @Autowired
     SysDataCache dataCache;
 
-    private HashMap<Type, CacheUnit> cacheUnits;
+    private List<RegularService> servicesCache;
 
     @Override
     public boolean execute() {
@@ -39,12 +40,12 @@ public class UpdateManager implements FixedTickCheck {
      * 更新容器中所有项目
      */
     public void updateAll() {
-
-        for (Type type : cacheUnits.keySet()) {
-            RegularService service = cacheUnits.get(type).getService();
+        log.info("=======================缓存数据更新========================");
+        for (RegularService service : servicesCache) {
+            Type type = service.getType();
             PriorityQueue<Checkable> queue = service.updateAll();
             boolean res = dataCache.updateCache(type, queue);
-            log.info("执行更新服务" + type);
+            log.info("执行更新服务：" + type);
             if (!res) {
                 throw new RuntimeException("数据更新失败：" + type + "\n" + queue);
             }
@@ -53,6 +54,6 @@ public class UpdateManager implements FixedTickCheck {
 
 
     private void updateCacheUnits() {
-        this.cacheUnits = dataCache.getCacheUnits();
+        this.servicesCache = dataCache.getOrderList();
     }
 }

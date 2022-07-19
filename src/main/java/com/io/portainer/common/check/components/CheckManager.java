@@ -51,7 +51,7 @@ public class CheckManager implements FrequentTickCheck {
             Checkable peek = queue.peek();
 
             if(peek == null) {
-                return;
+                continue;
             }
 
             LocalDateTime time = peek.getExpired();

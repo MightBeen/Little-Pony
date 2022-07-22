@@ -28,8 +28,8 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(value = IllegalArgumentException.class)
     public ResultWrapper handler(IllegalArgumentException e) {
-        log.error("Assert异常:-----------{}", e.getMessage());
-        return ResultWrapper.fail(e.getMessage());
+        log.error("参数异常:-----------{}", e.getMessage());
+        return ResultWrapper.fail(401, e.getMessage());
     }
 
     /**

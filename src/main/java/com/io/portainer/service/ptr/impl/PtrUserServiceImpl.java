@@ -3,15 +3,15 @@ package com.io.portainer.service.ptr.impl;
 import cn.hutool.http.HttpException;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.io.core.common.wrapper.ConstValue;
-import com.io.portainer.common.check.Checkable;
-import com.io.portainer.common.check.RegularService;
+import com.io.portainer.common.timer.Checkable;
+import com.io.portainer.common.timer.RegularService;
 import com.io.portainer.common.exception.ApplyConflictedException;
 import com.io.portainer.common.exception.PortainerException;
+import com.io.portainer.common.timer.components.UpdateManager;
 import com.io.portainer.common.utils.CommonUtils;
 import com.io.portainer.common.utils.PortainerConnector;
 import com.io.portainer.common.utils.PtrJsonParser;
 import com.io.portainer.data.entity.sys.SysCheckList;
-import com.io.portainer.data.entity.ptr.PtrEndpoint;
 import com.io.portainer.data.entity.ptr.PtrUser;
 import com.io.portainer.data.entity.ptr.PtrUserEndpoint;
 import com.io.portainer.data.entity.sys.SysWaitList;
@@ -63,6 +63,9 @@ public class PtrUserServiceImpl extends ServiceImpl<PtrUserMapper, PtrUser>
 
     @Autowired
     SysWaitListService sysWaitListService;
+
+    @Autowired
+    UpdateManager updateManager;
 
     private final String baseUrl = "/users";
 
@@ -214,6 +217,7 @@ public class PtrUserServiceImpl extends ServiceImpl<PtrUserMapper, PtrUser>
             // TODO: 新建一个异常类
             throw new IllegalArgumentException("已在等待队列中：" + ptrUser.getUsername());
 
+
         // 校验完成，添入队列
         SysCheckList item = new SysCheckList();
 
@@ -221,8 +225,11 @@ public class PtrUserServiceImpl extends ServiceImpl<PtrUserMapper, PtrUser>
         item.setMessage(ptrUser.getRemark());
         item.setRelatedUserId(ptrUser.getId());
         item.setRelatedResourceType(resourceType);
+
         sysCheckListService.AddItemToWaitList(item, resourceType, day, ptrUser.getJobId());
 
+        // 调用队列的更新
+        updateManager.updateByType(SysWaitList.class);
         return false;
     }
 

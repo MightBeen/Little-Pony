@@ -1,15 +1,6 @@
 package com.io.portainer.service.sys.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.io.core.common.wrapper.ConstValue;
-import com.io.portainer.common.check.Checkable;
-import com.io.portainer.common.check.RegularService;
-import com.io.portainer.common.exception.PortainerException;
-import com.io.portainer.common.utils.CommonUtils;
-import com.io.portainer.data.dto.wos.WosUser;
-import com.io.portainer.data.entity.ptr.PtrEndpoint;
-import com.io.portainer.data.entity.ptr.PtrUser;
-import com.io.portainer.data.entity.ptr.PtrUserEndpoint;
 import com.io.portainer.data.entity.sys.SysCheckList;
 import com.io.portainer.data.entity.sys.SysWaitList;
 import com.io.portainer.mapper.sys.SysCheckListMapper;
@@ -18,17 +9,12 @@ import com.io.portainer.service.ptr.PtrUserEndpointService;
 import com.io.portainer.service.sys.SysCheckListService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.io.portainer.service.sys.SysWaitListService;
-import okhttp3.Response;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.validation.constraints.NotNull;
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-import java.util.PriorityQueue;
 
 /**
  * <p>

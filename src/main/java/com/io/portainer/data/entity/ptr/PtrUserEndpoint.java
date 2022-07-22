@@ -1,13 +1,8 @@
 package com.io.portainer.data.entity.ptr;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
 import java.time.LocalDateTime;
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
 
-import com.io.portainer.common.check.Checkable;
+import com.io.portainer.common.timer.Checkable;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 

@@ -1,14 +1,12 @@
 package com.io.portainer.data.entity.sys;
 
-import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 
-import com.io.portainer.common.check.Checkable;
-import com.io.portainer.data.dto.wos.WosUser;
+import com.io.portainer.common.timer.Checkable;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;

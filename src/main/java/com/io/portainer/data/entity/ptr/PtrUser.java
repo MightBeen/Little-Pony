@@ -1,7 +1,7 @@
 package com.io.portainer.data.entity.ptr;
 
 import com.io.portainer.common.annotation.PtrMapper;
-import com.io.portainer.common.check.Checkable;
+import com.io.portainer.common.timer.Checkable;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 

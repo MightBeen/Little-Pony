@@ -1,6 +1,4 @@
-package com.io.portainer.common.check;
-
-import com.io.portainer.common.check.SysTimeCheck;
+package com.io.portainer.common.timer;
 
 /**
  * 会被频繁调用的计时器组件

@@ -3,7 +3,7 @@ package com.io.portainer.Controller.ptr;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.io.core.common.wrapper.ResultWrapper;
-import com.io.portainer.common.check.components.UpdateManager;
+import com.io.portainer.common.timer.components.UpdateManager;
 import com.io.portainer.data.dto.wos.BusinessType;
 import com.io.portainer.data.dto.wos.WosUser;
 import com.io.portainer.data.entity.ptr.PtrUser;
@@ -25,8 +25,9 @@ public class PtrUserController extends PtrBaseController {
 
     @PostMapping("/apply")
     public ResultWrapper userApplyHandler(@Validated @RequestBody WosUser wosUser) throws IOException {
-        // TODO：用工厂模式优化
         if (wosUser.getBusinessType().equals(BusinessType.GPU_APPLY.code)) {
+            // 先执行更新
+            updateManager.updateByType(PtrUser.class);
 
             PtrUser ptrUser = ptrUserService.getOne(new QueryWrapper<PtrUser>().eq("job_id",
                     wosUser.getJobId()));

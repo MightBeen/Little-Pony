@@ -1,8 +1,8 @@
-package com.io.portainer.common.check.components;
+package com.io.portainer.common.timer.components;
 
 
-import com.io.portainer.common.check.Checkable;
-import com.io.portainer.common.check.RegularService;
+import com.io.portainer.common.timer.Checkable;
+import com.io.portainer.common.timer.RegularService;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,7 +23,7 @@ public class SysDataCache {
 
     private HashMap<Type, CacheUnit> unitMaps = new HashMap<>();
 
-    private List<RegularService> orderList = new ArrayList<>();
+    private List<RegularService<Checkable>> orderList = new ArrayList<>();
 
 
     /**
@@ -75,7 +75,7 @@ public class SysDataCache {
      *
      * @return
      */
-    List<RegularService> getOrderList() {
+    List<RegularService<Checkable>> getOrderList() {
         return this.orderList;
     }
 

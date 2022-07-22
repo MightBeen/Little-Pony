@@ -1,19 +1,15 @@
-package com.io.portainer.common.check.components;
+package com.io.portainer.common.timer.components;
 
-import cn.hutool.core.lang.hash.Hash;
-import com.io.portainer.common.check.Checkable;
-import com.io.portainer.common.check.FrequentTickCheck;
-import com.io.portainer.common.check.RegularService;
+import com.io.portainer.common.timer.Checkable;
+import com.io.portainer.common.timer.FrequentTickCheck;
+import com.io.portainer.common.timer.RegularService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Type;
-import java.sql.Time;
 import java.time.LocalDateTime;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.PriorityQueue;
 
 

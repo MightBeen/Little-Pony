@@ -1,7 +1,7 @@
 package com.io.init;
 
-import com.io.portainer.common.check.FixedTickCheck;
-import com.io.portainer.common.check.FrequentTickCheck;
+import com.io.portainer.common.timer.FixedTickCheck;
+import com.io.portainer.common.timer.FrequentTickCheck;
 import com.io.portainer.common.config.SettingManager;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContext;

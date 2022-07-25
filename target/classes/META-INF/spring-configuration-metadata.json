@@ -26,6 +26,51 @@
       "name": "jwt-utils.jwt.secret",
       "type": "java.lang.String",
       "sourceType": "com.io.core.common.utils.JwtUtils"
+    },
+    {
+      "name": "sys-default-setting.portainer-access-token",
+      "type": "java.lang.String",
+      "sourceType": "com.io.portainer.common.config.DefaultSetting"
+    },
+    {
+      "name": "sys-default-setting.portainer-url",
+      "type": "java.lang.String",
+      "sourceType": "com.io.portainer.common.config.DefaultSetting"
+    },
+    {
+      "name": "sys-default-setting.timer-check",
+      "type": "java.lang.Long",
+      "sourceType": "com.io.portainer.common.config.DefaultSetting"
+    },
+    {
+      "name": "sys-default-setting.timer-group-gpu-clear",
+      "type": "java.lang.Long",
+      "sourceType": "com.io.portainer.common.config.DefaultSetting"
+    },
+    {
+      "name": "sys-default-setting.timer-group-gpu-expire",
+      "type": "java.lang.Long",
+      "sourceType": "com.io.portainer.common.config.DefaultSetting"
+    },
+    {
+      "name": "sys-default-setting.timer-single-gpu-clear",
+      "type": "java.lang.Long",
+      "sourceType": "com.io.portainer.common.config.DefaultSetting"
+    },
+    {
+      "name": "sys-default-setting.timer-single-gpu-expire",
+      "type": "java.lang.Long",
+      "sourceType": "com.io.portainer.common.config.DefaultSetting"
+    },
+    {
+      "name": "sys-default-setting.wos-access-token",
+      "type": "java.lang.String",
+      "sourceType": "com.io.portainer.common.config.DefaultSetting"
+    },
+    {
+      "name": "sys-default-setting.wos-url",
+      "type": "java.lang.String",
+      "sourceType": "com.io.portainer.common.config.DefaultSetting"
     }
   ],
   "hints": []

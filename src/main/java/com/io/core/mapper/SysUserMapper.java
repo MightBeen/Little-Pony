@@ -21,4 +21,9 @@ public interface SysUserMapper extends BaseMapper<SysUser> {
 
     List<SysUser> listByMenuId(Long id);
 
+    /**
+     * 用于查询管理系统操作员id
+     * @return
+     */
+    List<Long> getOperatorsWosIds();
 }

@@ -1,14 +1,19 @@
 package com.io.portainer.service.sys.impl;
 
+import cn.hutool.http.HttpException;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.io.core.common.wrapper.ConstValue;
+import com.io.core.mapper.SysUserMapper;
 import com.io.portainer.common.timer.Checkable;
 import com.io.portainer.common.timer.RegularService;
 import com.io.portainer.common.timer.components.SysDataCache;
 import com.io.portainer.common.exception.PortainerException;
 import com.io.portainer.common.utils.CommonUtils;
 import com.io.portainer.common.utils.PortainerConnector;
+import com.io.portainer.common.utils.WosSysConnector;
+import com.io.portainer.data.dto.wos.WosMessageDto;
 import com.io.portainer.data.entity.ptr.PtrEndpoint;
+import com.io.portainer.data.entity.ptr.PtrUser;
 import com.io.portainer.data.entity.ptr.PtrUserEndpoint;
 import com.io.portainer.data.entity.sys.SysCheckList;
 import com.io.portainer.data.entity.sys.SysWaitList;
@@ -16,6 +21,7 @@ import com.io.portainer.mapper.SysWaitListMapper;
 import com.io.portainer.mapper.sys.SysCheckListMapper;
 import com.io.portainer.service.ptr.PtrEndpointService;
 import com.io.portainer.service.ptr.PtrUserEndpointService;
+import com.io.portainer.service.ptr.PtrUserService;
 import com.io.portainer.service.sys.SysCheckListService;
 import com.io.portainer.service.sys.SysWaitListService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -50,6 +56,9 @@ public class SysWaitListServiceImpl extends ServiceImpl<SysWaitListMapper, SysWa
     SysCheckListService sysCheckListService;
 
     @Autowired
+    PtrUserService ptrUserService;
+
+    @Autowired
     SysCheckListMapper sysCheckListMapper;
 
     @Autowired
@@ -61,8 +70,11 @@ public class SysWaitListServiceImpl extends ServiceImpl<SysWaitListMapper, SysWa
     @Autowired
     PtrUserEndpointService ptrUserEndpointService;
 
-    SysDataCache dataCache;
+    @Autowired
+    WosSysConnector wosSysConnector;
 
+    @Autowired
+    SysUserMapper sysUserMapper;
 
     @Override
     @Transactional
@@ -74,12 +86,12 @@ public class SysWaitListServiceImpl extends ServiceImpl<SysWaitListMapper, SysWa
 
 
         for (Integer resourceType : CommonUtils.resourceTypeCodes()) {
-            List<PtrEndpoint> eplist = new ArrayList<>();
+            List<PtrEndpoint> epList = new ArrayList<>();
             PriorityQueue<SysWaitList> queue = new PriorityQueue<>();
 
             for (PtrEndpoint ep : endpoints) {
                 if (ep.available(resourceType))
-                    eplist.add(ep);
+                    epList.add(ep);
             }
 
             for (SysWaitList wl : waits) {
@@ -87,7 +99,7 @@ public class SysWaitListServiceImpl extends ServiceImpl<SysWaitListMapper, SysWa
                     queue.add(wl);
             }
 
-            for (PtrEndpoint ep : eplist) {
+            for (PtrEndpoint ep : epList) {
                 SysWaitList peek = queue.peek();
                 if (peek == null) {
                     break;
@@ -137,11 +149,12 @@ public class SysWaitListServiceImpl extends ServiceImpl<SysWaitListMapper, SysWa
     @Override
     @Transactional
     public void deleteItem(Checkable item) {
-        SysWaitList waitList = this.getById(item.getId());
-        getAccessForUser(waitList);
+//        SysWaitList waitList = this.getById(item.getId());
+//        getAccessForUser(waitList);
     }
 
     @Transactional
+    @Deprecated
     boolean getAccessForUser(SysWaitList waitList) {
         log.info("正在处理waitList：" + waitList);
 
@@ -172,7 +185,7 @@ public class SysWaitListServiceImpl extends ServiceImpl<SysWaitListMapper, SysWa
                     // TODO：通知管理员
                     String info = response.toString();
                     response.close();
-                    throw new PortainerException(info);
+//                    throw new PortainerException(info);
                 }
 
                 // 填入ue关系表
@@ -237,14 +250,22 @@ public class SysWaitListServiceImpl extends ServiceImpl<SysWaitListMapper, SysWa
             } catch (IOException e) {
                 log.error(e.getMessage());
                 message = "Portainer 连接异常";
+                // TODO: 2022/7/25 新建portainer连接异常
+                throw new HttpException(e.getMessage());
             }
 
             assert response != null;
             if (response.code() != 200) {
                 // TODO：通知管理员
-                String info = response.toString();
-                response.close();
-                throw new PortainerException(info);
+                String info = null;
+                try {
+                    info = response.body().string();
+                } catch (IOException e) {
+                    log.error(e.getMessage());
+                    message = "Portainer 连接异常";
+                    throw new HttpException(e.getMessage());
+                }
+                throw new RuntimeException(info);
             }
 
             // 填入ue关系表
@@ -279,9 +300,62 @@ public class SysWaitListServiceImpl extends ServiceImpl<SysWaitListMapper, SysWa
         // 同时更新checkList
         sysCheckListService.updateById(checkList);
 
-        // TODO: 2022/7/18 给工单系统中对应用户发送信息
-        log.info("处理完成");
-        return isSuccess;
+        // 如果成功，给工单系统中对应用户发送信息
+        if (isSuccess) {
+            sentMessage(checkList, endpoint);
+            log.info("处理完成");
+        }
+        else{
+            log.error("处理失败");
+            sendErrorMessage(checkList);
+        }
+        return true;
+    }
+
+    private void sendErrorMessage(SysCheckList checkList) {
+
+        if (!checkList.getType().equals(ConstValue.ERROR_LIST_TYPE)) {
+            checkList.setType(ConstValue.ERROR_LIST_TYPE);
+        }
+
+        WosMessageDto message = new WosMessageDto();
+        StringBuilder sb = new StringBuilder();
+
+        PtrUser ptrUser = ptrUserService.getById(checkList.getRelatedUserId());
+        List<Long> wosIds = sysUserMapper.getOperatorsWosIds();
+
+        message.setTitle("Gpu管理系统自动处理出现异常");
+        sb.append("发生时间：")
+                .append(LocalDateTime.now())
+                .append("故障类型： 处理等待队列时异常")
+                .append("详细信息：")
+                .append(checkList.getMessage());
+        message.setDescription(sb.toString());
+
+        wosIds.forEach(i -> {
+            message.setReceiver(i);
+            wosSysConnector.asyncSendErrorMessage(message);
+        });
+    }
+
+    private void sentMessage(SysCheckList checkList, PtrEndpoint endpoint) {
+        WosMessageDto message = new WosMessageDto();
+        StringBuilder sb = new StringBuilder();
+
+        PtrUser user = ptrUserService.getById(checkList.getRelatedUserId());
+
+        message.setReceiver(user.getWosId());
+        message.setTitle("资源调度完成");
+        sb.append("您申请的GPU资源----\n 名称：")
+                .append(endpoint.getName())
+                .append("\n")
+                .append("url: ")
+                .append(endpoint.getUrl())
+                .append("\n")
+                .append("已完成调度")
+        ;
+        message.setDescription(sb.toString());
+        wosSysConnector.asyncSendMessage(message);
     }
 
 }

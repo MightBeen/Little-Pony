@@ -3,9 +3,10 @@ package com.io.portainer.service.ptr.impl;
 import cn.hutool.http.HttpException;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.io.core.common.wrapper.ConstValue;
+import com.io.portainer.common.exception.WosSysException;
 import com.io.portainer.common.timer.Checkable;
 import com.io.portainer.common.timer.RegularService;
-import com.io.portainer.common.exception.ApplyConflictedException;
+import com.io.portainer.common.exception.ApplyRejectException;
 import com.io.portainer.common.exception.PortainerException;
 import com.io.portainer.common.timer.components.UpdateManager;
 import com.io.portainer.common.utils.CommonUtils;
@@ -196,19 +197,19 @@ public class PtrUserServiceImpl extends ServiceImpl<PtrUserMapper, PtrUser>
     @Override
     @Transactional
     public boolean getEndPointAccessById(PtrUser ptrUser, int resourceType, int day) throws IOException {
-        if (ptrUser == null || ptrUser.getJobId() == null) throw new IllegalArgumentException("ptrUser or jobId cannot be null");
+        if (ptrUser == null || ptrUser.getWosId() == null) throw new IllegalArgumentException("ptrUser or jobId cannot be null");
         if (ptrUser.getRole() == 1) {
-            throw new IllegalArgumentException("申请用户不能为管理员");
+            throw new ApplyRejectException("申请用户不能为管理员");
         }
 
         // 检查是否重复申请
         List<PtrUserEndpoint> user_ids01 = ptrUserEndpointService.list(new QueryWrapper<PtrUserEndpoint>().eq("user_id", ptrUser.getId()));
         if (!user_ids01.isEmpty()) {
-            throw new ApplyConflictedException("重复申请 ：" + ptrUser.getUsername());
+            throw new ApplyRejectException("重复申请 ：" + ptrUser.getUsername());
         }
 
         // 检查等待队列
-        List<SysWaitList> waitList = sysWaitListService.list(new QueryWrapper<SysWaitList>().eq("job_id", ptrUser.getJobId()));
+        List<SysWaitList> waitList = sysWaitListService.list(new QueryWrapper<SysWaitList>().eq("wos_id", ptrUser.getWosId()));
 
         // 检查申请资源类型是否有效
         CommonUtils.getCapacity(resourceType);
@@ -226,7 +227,7 @@ public class PtrUserServiceImpl extends ServiceImpl<PtrUserMapper, PtrUser>
         item.setRelatedUserId(ptrUser.getId());
         item.setRelatedResourceType(resourceType);
 
-        sysCheckListService.AddItemToWaitList(item, resourceType, day, ptrUser.getJobId());
+        sysCheckListService.AddItemToWaitList(item, resourceType, day, ptrUser.getWosId());
 
         // 调用队列的更新
         updateManager.updateByType(SysWaitList.class);
@@ -254,19 +255,17 @@ public class PtrUserServiceImpl extends ServiceImpl<PtrUserMapper, PtrUser>
         // TODO: catch 409异常
         if (response.code() != 200) {
             // TODO: 给管理员发送异常信息
-            PortainerException e = new PortainerException(response.toString()+"\n" + responseBody);
 
             // 将异常加入checkList
             SysCheckList item = new SysCheckList();
 
             item.setCreated(LocalDateTime.now());
-            item.setMessage(response.code() + e.getMessage());
+            item.setMessage(response.code() + responseBody);
             item.setRelatedUserId(u.getId());
-            item.setType(Long.valueOf(ConstValue.ERROR_LIST_TYPE));
+            item.setType(ConstValue.ERROR_LIST_TYPE);
             sysCheckListService.save(item);
 
-            response.close();
-            throw e;
+            throw new PortainerException(responseBody, item, response.code());
         }
         response.close();
         u.setCreated(LocalDateTime.now());

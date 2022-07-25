@@ -25,11 +25,14 @@ jwt-utils:
 
 
 sys-default-setting:
-# portainer 连接设置
+# ===================== portainer 连接设置 ==========================
   portainer-access-token: ptr_UftpSP8+k8AXRTkHOaQ4txD7+wDMSGS53SavxJxXBW4=
   portainer-url: http://localhost:9000/api
 
-# 计时器设置
+#  ====================== 工单系统连接设置 ====================
+  wos-access-token: 123www
+  wos-url: http://localhost:8080/backendApi
+# ======================== 计时器设置 ====================
 
 #   自动校对信息间隔（数据库查询间隔 单位：s） 1000 * {n}
   timer-check: 60

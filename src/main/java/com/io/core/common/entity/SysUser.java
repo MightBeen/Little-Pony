@@ -35,10 +35,15 @@ public class SysUser extends CoreBaseEntity {
      */
     private String avatar;
 
+    /**
+     * 学/工号
+     */
+    private String studentJobId;
 
-    @NotBlank(message = "邮箱不能为空")
-    @Email(message = "邮箱格式不正确")
-    private String email;
+    /**
+     * 工单系统中对应id
+     */
+    private Long wosId;
 
     private String city;
 

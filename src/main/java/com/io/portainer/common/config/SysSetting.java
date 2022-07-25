@@ -8,6 +8,10 @@ public abstract class SysSetting {
 
     protected String portainerUrl;
 
+    protected String wosAccessToken;
+
+    protected String wosUrl;
+
     protected Long timerCheck;
 
     protected Long timerGroupGpuExpire;

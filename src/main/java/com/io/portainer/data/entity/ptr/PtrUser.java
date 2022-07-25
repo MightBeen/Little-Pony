@@ -30,9 +30,23 @@ public class PtrUser extends PtrBaseEntity implements Checkable {
     private Integer role = 2;
 
     /**
+     * 工单系统中id
+     */
+    private Long wosId;
+
+
+    public Long getWosId() {
+        return wosId;
+    }
+
+    public void setWosId(Long wosId) {
+        this.wosId = wosId;
+    }
+
+    /**
      * 学号或工号
      */
-    private Long jobId;
+    private String studentJobId;
 
     /**
      * 备注

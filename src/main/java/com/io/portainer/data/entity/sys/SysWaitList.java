@@ -31,7 +31,7 @@ public class SysWaitList implements Serializable, Checkable {
 
     private Long relatedUserId;
 
-    private Long jobId;
+    private Long wosId;
 
     private Integer resourceType;
 
@@ -44,12 +44,12 @@ public class SysWaitList implements Serializable, Checkable {
      */
     private LocalDateTime created = LocalDateTime.now();
 
-    public SysWaitList(SysCheckList checkList, Integer resourceType, Integer days, Long jobId){
+    public SysWaitList(SysCheckList checkList, Integer resourceType, Integer days, Long wosId){
         this.relatedUserId = checkList.getRelatedUserId();
         this.remark = checkList.getMessage();
         this.resourceType = resourceType;
         this.applyDays = days;
-        this.jobId = jobId;
+        this.wosId = wosId;
     }
 
     /**

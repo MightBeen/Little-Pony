@@ -104,7 +104,7 @@ public class PtrEndpointServiceImpl extends ServiceImpl<PtrEndpointMapper, PtrEn
                     edp.setCreated(LocalDateTime.now());
                 }
             } else {
-                throw new PortainerException("Portainer 连接异常: " + ptrResponse.code());
+                throw new HttpException("Portainer 连接异常: " + ptrResponse.code());
             }
 
             dbEndpoints = this.list();

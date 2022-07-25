@@ -59,13 +59,13 @@ public class PtrUserEndpointServiceImpl extends ServiceImpl<PtrUserEndpointMappe
         List<PtrEndpoint> endpoints = ptrEndpointService.updatePtrEndpointsDataFromPtr();
 
         // 处理僵尸用户
-        endpoints.forEach(e ->{
+        endpoints.forEach(e -> {
             Iterator<Long> it = e.getUserIds().iterator();
             boolean updated = false;
             while (it.hasNext()) {
                 Long userid = it.next();
                 PtrUser user = ptrUserService.getById(userid);
-                if (user == null){
+                if (user == null) {
                     updated = true;
                     log.info("User :" + userid + "不存在，自动回收其访问权限");
                     this.remove(new QueryWrapper<PtrUserEndpoint>()
@@ -92,23 +92,24 @@ public class PtrUserEndpointServiceImpl extends ServiceImpl<PtrUserEndpointMappe
         boolean res = this.remove(new QueryWrapper<PtrUserEndpoint>().eq("id", item.getId()));
 
         if (!res) {
-            throw new RuntimeException("删除失败！" + "  id："+ item.getId() + "detail：" + item);
+            throw new RuntimeException("删除失败！" + "  id：" + item.getId() + "detail：" + item);
         }
 
         updateUserAccessOfPtr(e);
     }
 
-    public void updateUserAccessOfPtr(PtrEndpoint endpoint){
+    public void updateUserAccessOfPtr(PtrEndpoint endpoint) {
         String json = CommonUtils.portainerFormatWrapper(endpoint.getUserIds());
 
         try {
             Response response = portainerConnector.putRequest("/endpoints/" + endpoint.getId(), json);
             log.info("Portainer response: " + response.toString());
-            log.info(response.body().string());
-            response.close();
-            if (response.code() != 200){
-                throw new PortainerException(response.toString() + "" +response.body().string());
+            if (response.code() != 200) {
+                assert response.body() != null;
+                throw new PortainerException(response.body().string(), null, response.code());
             }
+
+            response.close();
         } catch (IOException ex) {
             ex.printStackTrace();
             throw new RuntimeException(ex.getMessage());

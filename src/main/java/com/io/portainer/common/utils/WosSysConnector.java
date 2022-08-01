@@ -13,9 +13,14 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.concurrent.*;
 
 @Component
 public class WosSysConnector extends ApiConnector{
+    ThreadPoolExecutor threadPool = new ThreadPoolExecutor(5, 30, 1, TimeUnit.SECONDS,
+                new LinkedBlockingQueue<Runnable>(),
+                Executors.defaultThreadFactory(),
+                new ThreadPoolExecutor.CallerRunsPolicy());
 
     @Autowired
     SettingManager settingManager;
@@ -39,14 +44,15 @@ public class WosSysConnector extends ApiConnector{
      * 异步向工单系统发送信息
      */
     public void asyncSendMessage(WosMessageDto message) {
-        // TODO: 2022/7/25 利用线程池优化 
+
         Thread thread = new Thread(new Runnable() {
             @Override
             public void run() {
                 sendMessage(message, false);
             }
         });
-        thread.start();
+
+        threadPool.execute(thread);
     }
 
     /**
@@ -96,7 +102,7 @@ public class WosSysConnector extends ApiConnector{
                 sendErrorMessage(message);
             }
         });
-       thread.start();
+        threadPool.execute(thread);;
     }
 
     public void sendErrorMessage(WosMessageDto message) {

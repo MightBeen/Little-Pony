@@ -6,6 +6,7 @@ import com.io.portainer.common.timer.RegularService;
 import com.io.portainer.common.exception.PortainerException;
 import com.io.portainer.common.utils.CommonUtils;
 import com.io.portainer.common.utils.PortainerConnector;
+import com.io.portainer.common.utils.PtrJsonParser;
 import com.io.portainer.data.entity.ptr.PtrEndpoint;
 import com.io.portainer.data.entity.ptr.PtrUser;
 import com.io.portainer.data.entity.ptr.PtrUserEndpoint;
@@ -22,9 +23,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
-import java.util.Iterator;
-import java.util.List;
-import java.util.PriorityQueue;
+import java.lang.reflect.Field;
+import java.util.*;
 
 /**
  * <p>
@@ -119,5 +119,12 @@ public class PtrUserEndpointServiceImpl extends ServiceImpl<PtrUserEndpointMappe
     @Override
     public int getOrder() {
         return 1;
+    }
+
+
+    @Override
+    public PtrUserEndpoint updatePtrUserEndpointData(PtrUserEndpoint u) {
+        updateById(u);
+        return u;
     }
 }

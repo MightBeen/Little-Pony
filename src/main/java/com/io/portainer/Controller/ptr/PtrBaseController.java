@@ -11,4 +11,7 @@ public abstract class PtrBaseController {
 
     @Autowired
     PtrUserService ptrUserService;
+    
+    @Autowired
+    PtrUserEndpointService ptrUserEndpointService;
 }

@@ -242,34 +242,56 @@ public class PtrUserServiceImpl extends ServiceImpl<PtrUserMapper, PtrUser>
     public PtrUser addPtrUserToPtr(PtrUser u) throws IOException {
         // TODO 完成自定义序列化
         PtrJsonParser<PtrUser> parser = new PtrJsonParser<PtrUser>(PtrUser.class);
-        String body = parser.getObjectMapper().writeValueAsString(u);
+
 //        System.out.println(body);
-        Response response = portainerConnector.postRequest(baseUrl, body);
+        try {
+            String body = parser.getObjectMapper().writeValueAsString(u);
+            Response response = portainerConnector.postRequest(baseUrl, body);
 
-        String responseBody = response.body().string();
+            String responseBody = response.body().string();
 
-        PtrUser builtUser = parser.parseJson(responseBody);
+            PtrUser builtUser = parser.parseJson(responseBody);
 
-        u.setId(builtUser.getId());
+            u.setId(builtUser.getId());
 
-        // TODO: catch 409异常
-        if (response.code() != 200) {
-            // TODO: 给管理员发送异常信息
 
-            // 将异常加入checkList
-            SysCheckList item = new SysCheckList();
+            if (response.code() != 200) {
+                // TODO: 给管理员发送异常信息
 
-            item.setCreated(LocalDateTime.now());
-            item.setMessage(response.code() + responseBody);
-            item.setRelatedUserId(u.getId());
-            item.setType(ConstValue.ERROR_LIST_TYPE);
-            sysCheckListService.save(item);
+                // 将异常加入checkList
+                SysCheckList item = new SysCheckList();
 
-            throw new PortainerException(responseBody, item, response.code());
+                item.setCreated(LocalDateTime.now());
+                item.setMessage(response.code() + responseBody);
+                item.setRelatedUserId(u.getId());
+                item.setType(ConstValue.ERROR_LIST_TYPE);
+                sysCheckListService.save(item);
+
+                throw new PortainerException(responseBody, item, response.code());
+            }
+            response.close();
+            u.setCreated(LocalDateTime.now());
+            save(u);
+            // TODO: catch 409异常
+            //finished 8.1
+        } catch (PortainerException e) {
+            updateManager.updateByType(PtrUser.class);
+            while (true) {
+                u.setUsername(u.getUsername() + "*");
+                String body = parser.getObjectMapper().writeValueAsString(u);
+                Response response = portainerConnector.postRequest(baseUrl, body);
+                String responseBody = response.body().string();
+                PtrUser builtUser = parser.parseJson(responseBody);
+                u.setId(builtUser.getId());
+                u.setCreated(LocalDateTime.now());
+                response.close();
+                PtrUser ptrUser = this.getOne(new QueryWrapper<PtrUser>().eq("username",
+                        u.getUsername()));
+                if(ptrUser == null) break;
+            }
+            save(u);
+
         }
-        response.close();
-        u.setCreated(LocalDateTime.now());
-        save(u);
         return u;
     }
 

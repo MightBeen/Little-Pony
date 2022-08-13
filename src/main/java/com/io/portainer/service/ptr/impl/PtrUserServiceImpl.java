@@ -158,14 +158,12 @@ public class PtrUserServiceImpl extends ServiceImpl<PtrUserMapper, PtrUser>
                 userMap.put(u.getId(), u);
             });
 
-            List<Field> updatableFields = parser.getUpdatableFields();
-
             // 将数据合并
             for (PtrUser ptrUser : ptrUserList) {
                 ptrUser.setCreated(LocalDateTime.now());
                 PtrUser u = userMap.get(ptrUser.getId());
                 if (u != null) {
-                    CommonUtils.fieldInjection(updatableFields, ptrUser, u);
+                    CommonUtils.fieldInjection(parser.getUpdatableFields(), ptrUser, u);
                     ptrUser.setUpdated(LocalDateTime.now());
                 }
             }

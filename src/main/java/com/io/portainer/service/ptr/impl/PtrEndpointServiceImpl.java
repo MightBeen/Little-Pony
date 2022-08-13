@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 
@@ -76,49 +77,48 @@ public class PtrEndpointServiceImpl extends ServiceImpl<PtrEndpointMapper, PtrEn
         return ids;
     }
 
-    // TODO：优化这坨屎
-    // TODO：一定要优化这坨屎
     @Override
     @Transactional
     public List<PtrEndpoint> updatePtrEndpointsDataFromPtr() {
         // 从portainer获取的数据
         List<PtrEndpoint> ptrEndpointList = null;
-        // 从管理系统数据库中获取的数据
-        List<PtrEndpoint> dbEndpoints = null;
 
+        // 从管理系统数据库中获取的数据
+        List<PtrEndpoint> dbEndpoints = this.list();
+
+        // 用于返回
         List<PtrEndpoint> newEndpoints = null;
+
+        PtrJsonParser<PtrEndpoint> parser = new PtrJsonParser<>(PtrEndpoint.class);
+
+        List<Long> ids = new ArrayList<>();
+
+        HashMap<Long, PtrEndpoint> edMap = new HashMap<>();
+
 
         Response ptrResponse;
         try {
             ptrResponse = portainerConnector.getRequest(baseUrl);
-
-            // TODO: 抽象并封装各serviceImpl 中相同的该部分
             if (ptrResponse.code() == 200) {
-                PtrJsonParser<PtrEndpoint> parser = new PtrJsonParser<>(PtrEndpoint.class);
-                ResponseBody body = ptrResponse.body();
-                assert body != null;
-                ptrEndpointList = parser.parseJsonArray(body.string());
-
-                for (PtrEndpoint edp : ptrEndpointList) {
-                    edp.setCreated(LocalDateTime.now());
-                }
+                ptrEndpointList = parser.parseJsonArray(ptrResponse.body().string());
             } else {
                 throw new HttpException("Portainer 连接异常: " + ptrResponse.code());
             }
 
-            dbEndpoints = this.list();
+            dbEndpoints.forEach(u -> {
+                ids.add(u.getId());
+                edMap.put(u.getId(), u);
+            });
 
-            List<Field> updatableFields = new PtrJsonParser<PtrEndpoint>(PtrEndpoint.class).getUpdatableFields();
 
             // 将数据合并
-            // TODO: 用二分查找优化搜索过程
             for (PtrEndpoint endpoint : ptrEndpointList) {
-                dbEndpoints.forEach(u -> {
-                    if (u.getId().equals(endpoint.getId())) {
-                        CommonUtils.fieldInjection(updatableFields, u, endpoint);
-                        endpoint.setUpdated(LocalDateTime.now());
-                    }
-                });
+                endpoint.setCreated(LocalDateTime.now());
+                PtrEndpoint u = edMap.get(endpoint.getId());
+                if (u != null) {
+                    CommonUtils.fieldInjection(parser.getUpdatableFields(), u, endpoint);
+                    endpoint.setUpdated(LocalDateTime.now());
+                }
             }
 
             // 同时更新ptr_user_endpoint表
@@ -129,14 +129,11 @@ public class PtrEndpointServiceImpl extends ServiceImpl<PtrEndpointMapper, PtrEn
 
             List<PtrUserEndpoint> newUeLists = CommonUtils.flatEndpoints(ptrEndpointList);
 
-            // TODO：优化搜索过程
             newUeLists.forEach(newItem -> {
                 newItem.setCreated(LocalDateTime.now());
                 newItem.setExpired(LocalDateTime.now().plusDays(31));
                 preUeLists.forEach(preItem -> {
-                    // TODO: 重写equals
                     if (Objects.equals(preItem.getEndpointId(), newItem.getEndpointId()) && Objects.equals(preItem.getUserId(), newItem.getUserId())) {
-                        // TODO：利用反射优化
                         newItem.setId(preItem.getId());
                         newItem.setCreated(preItem.getCreated());
                         newItem.setExpired(preItem.getExpired());
@@ -152,11 +149,10 @@ public class PtrEndpointServiceImpl extends ServiceImpl<PtrEndpointMapper, PtrEn
             newEndpoints = ptrEndpointList;
 
             // 移除旧数据
-            this.removeByIds(CommonUtils.entityToIdList(dbEndpoints));
+            this.removeByIds(ids);
             this.saveBatch(newEndpoints);
 
         } catch (IOException | HttpException e) {
-//          e.printStackTrace();
             log.error("Error getting endpoints from portainer :" + e.getMessage());
             return null;
         }

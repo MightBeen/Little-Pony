@@ -160,12 +160,12 @@ public class PtrUserServiceImpl extends ServiceImpl<PtrUserMapper, PtrUser>
 
             // 将数据合并
             for (PtrUser ptrUser : ptrUserList) {
-                ptrUser.setCreated(LocalDateTime.now());
                 PtrUser u = userMap.get(ptrUser.getId());
                 if (u != null) {
                     CommonUtils.fieldInjection(parser.getUpdatableFields(), ptrUser, u);
                     ptrUser.setUpdated(LocalDateTime.now());
-                }
+                } else
+                    ptrUser.setCreated(LocalDateTime.now());
             }
             newUsers = ptrUserList;
 

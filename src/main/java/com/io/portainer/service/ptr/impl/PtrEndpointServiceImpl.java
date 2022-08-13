@@ -113,12 +113,12 @@ public class PtrEndpointServiceImpl extends ServiceImpl<PtrEndpointMapper, PtrEn
 
             // 将数据合并
             for (PtrEndpoint endpoint : ptrEndpointList) {
-                endpoint.setCreated(LocalDateTime.now());
                 PtrEndpoint u = edMap.get(endpoint.getId());
                 if (u != null) {
-                    CommonUtils.fieldInjection(parser.getUpdatableFields(), u, endpoint);
+                    CommonUtils.fieldInjection(parser.getUpdatableFields(), endpoint, u);
                     endpoint.setUpdated(LocalDateTime.now());
-                }
+                } else
+                    endpoint.setCreated(LocalDateTime.now());
             }
 
             // 同时更新ptr_user_endpoint表

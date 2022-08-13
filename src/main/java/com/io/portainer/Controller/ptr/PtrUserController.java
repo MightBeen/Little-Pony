@@ -10,7 +10,6 @@ import com.io.portainer.data.dto.wos.BusinessType;
 import com.io.portainer.data.dto.wos.WosMessageDto;
 import com.io.portainer.data.dto.wos.WosUser;
 import com.io.portainer.data.entity.ptr.PtrUser;
-import com.io.portainer.data.entity.ptr.PtrUserEndpoint;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
@@ -18,7 +17,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
-import static com.io.portainer.common.utils.PasswordUtil.randomPassword;
 
 @RestController
 @Slf4j
@@ -30,7 +28,6 @@ public class PtrUserController extends PtrBaseController {
 
     @Autowired
     WosSysConnector wosSysConnector;
-
 
     @PostMapping("/apply")
     public ResultWrapper userApplyHandler(@Validated @RequestBody WosUser wosUser) throws IOException {
@@ -49,9 +46,8 @@ public class PtrUserController extends PtrBaseController {
                 ptrUser.setCreated(LocalDateTime.now());
                 ptrUser.setUsername(wosUser.getUsername());
                 ptrUser.setRemark(wosUser.getRemark());
-
                 // TODO ：设置密码生成
-                ptrUser.setPassword(randomPassword());
+                ptrUser.setPassword("20210110722021011072");
 
                 ptrUserService.addPtrUserToPtr(ptrUser);
 
@@ -68,25 +64,7 @@ public class PtrUserController extends PtrBaseController {
             return ResultWrapper.success( "操作成功，申请已在处理",ptrUser);
         } else if (wosUser.getBusinessType().equals(BusinessType.GPU_RENEWAL.code)) {
             // TODO：添加续期业务
-            //finished_7.28
-            PtrUser ptrUser1 = ptrUserService.getOne(new QueryWrapper<PtrUser>().eq("wos_id",
-                    wosUser.getId()));
-            PtrUser ptrUser2 = ptrUserService.getOne(new QueryWrapper<PtrUser>().eq("username",
-                    wosUser.getUsername()));
-            if(ptrUser1 != null && ptrUser2 != null){
-                PtrUserEndpoint ptrUserEndpoint = ptrUserEndpointService.getOne(new QueryWrapper<PtrUserEndpoint>().eq("user_id",
-                        ptrUser1.getId()));
-                if(ptrUserEndpoint !=null) {
-                    ptrUserEndpoint.setExpired(ptrUserEndpoint.getExpired().plusDays(wosUser.getApplyDays()));
-                    ptrUserEndpointService.updatePtrUserEndpointData(ptrUserEndpoint);
-                }
-                else
-                    //throw new IllegalArgumentException("不存在的用户名或此用户仍在等待队列：" + wosUser.getUsername());
-                    return ResultWrapper.fail("code:6000 不存在的用户名：" + wosUser.getUsername());
-            return ResultWrapper.success( "操作成功，延期申请已在处理",ptrUser1);
-            } else
-                return ResultWrapper.fail("code:6000 不存在的用户名：" + wosUser.getUsername());
-
+            throw new IllegalArgumentException("不支持的业务类型：" + wosUser.getBusinessType());
         } else
             throw new IllegalArgumentException("不支持的业务类型：" + wosUser.getBusinessType());
     }

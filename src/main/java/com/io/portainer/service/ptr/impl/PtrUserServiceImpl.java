@@ -3,14 +3,13 @@ package com.io.portainer.service.ptr.impl;
 import cn.hutool.http.HttpException;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.io.core.common.wrapper.ConstValue;
-import com.io.portainer.common.exception.WosSysException;
 import com.io.portainer.common.timer.Checkable;
 import com.io.portainer.common.timer.RegularService;
 import com.io.portainer.common.exception.ApplyRejectException;
 import com.io.portainer.common.exception.PortainerException;
 import com.io.portainer.common.timer.components.UpdateManager;
 import com.io.portainer.common.utils.CommonUtils;
-import com.io.portainer.common.utils.PortainerConnector;
+import com.io.portainer.common.utils.connect.PortainerConnector;
 import com.io.portainer.common.utils.PtrJsonParser;
 import com.io.portainer.data.entity.sys.SysCheckList;
 import com.io.portainer.data.entity.ptr.PtrUser;
@@ -34,6 +33,7 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.PriorityQueue;
 
@@ -129,61 +129,54 @@ public class PtrUserServiceImpl extends ServiceImpl<PtrUserMapper, PtrUser>
         List<PtrUser> newUsers = null;
 
         // 从管理系统中获取的用户
-        List<PtrUser> dataBaseUserList;
+        List<PtrUser> dataBaseUserList = this.list();
 
         // 从portainer获取的用户
         List<PtrUser> ptrUserList;
 
+        // 管理系统中用户id
+        List<Long> ids = new ArrayList<>();
+
+
+        HashMap<Long,PtrUser> userMap = new HashMap<>();
+
+
+        PtrJsonParser<PtrUser> parser = new PtrJsonParser<>(PtrUser.class);
+
+
         try {
             response = portainerConnector.getRequest(baseUrl);
-
             if (response.code() == 200) {
-                PtrJsonParser<PtrUser> parser = new PtrJsonParser<>(PtrUser.class);
-                ResponseBody body = response.body();
-                assert body != null;
-                ptrUserList = parser.parseJsonArray(body.string());
-
-                for (PtrUser ptu : ptrUserList) {
-                    ptu.setCreated(LocalDateTime.now());
-                }
+                ptrUserList = parser.parseJsonArray(response.body().string());
             } else {
                 throw new HttpException("Portainer 连接异常: " + response.code());
             }
 
-            dataBaseUserList = this.list();
 
-            List<Field> updatableFields = new PtrJsonParser<PtrUser>(PtrUser.class).getUpdatableFields();
+            dataBaseUserList.forEach(u ->{
+                ids.add(u.getId());
+                userMap.put(u.getId(), u);
+            });
+
+            List<Field> updatableFields = parser.getUpdatableFields();
 
             // 将数据合并
             for (PtrUser ptrUser : ptrUserList) {
-                dataBaseUserList.forEach(u -> {
-                    if (u.getId().equals(ptrUser.getId())) {
-                        for (Field field : updatableFields) {
-                            try {
-                                field.setAccessible(true);
-                                field.set(ptrUser, field.get(u));
-                                field.setAccessible(false);
-                            } catch (IllegalAccessException e) {
-                                e.printStackTrace();
-                                System.out.println(e.getMessage());
-                            }
-                        }
-                        ptrUser.setUpdated(LocalDateTime.now());
-                    }
-                });
+                ptrUser.setCreated(LocalDateTime.now());
+                PtrUser u = userMap.get(ptrUser.getId());
+                if (u != null) {
+                    CommonUtils.fieldInjection(updatableFields, ptrUser, u);
+                    ptrUser.setUpdated(LocalDateTime.now());
+                }
             }
             newUsers = ptrUserList;
 
-            List<Long> ids = new ArrayList<>();
-            dataBaseUserList.forEach(u -> ids.add(u.getId()));
-            // 移除旧数据
+            // 移除旧数据并保存
             this.removeByIds(ids);
-
             this.saveBatch(newUsers);
-
         } catch (IOException | HttpException e) {
-//            e.printStackTrace();
             log.error("Error getting users from portainer");
+            log.error(e.getMessage());
             return null;
         }
 

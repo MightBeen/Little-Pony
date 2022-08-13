@@ -1,4 +1,4 @@
-package com.io.portainer.common.utils;
+package com.io.portainer.common.utils.connect;
 
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -28,6 +28,8 @@ public abstract class ApiConnector {
     protected abstract String getBaseUrl();
 
     protected abstract String getApiKeyName();
+
+    protected abstract String connectionName();
 
 
     public Response getRequest(String url) throws IOException{

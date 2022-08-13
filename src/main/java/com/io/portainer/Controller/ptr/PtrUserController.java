@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.io.core.common.wrapper.ResultWrapper;
 import com.io.portainer.common.exception.PortainerException;
 import com.io.portainer.common.timer.components.UpdateManager;
-import com.io.portainer.common.utils.WosSysConnector;
+import com.io.portainer.common.utils.connect.WosSysConnector;
 import com.io.portainer.data.dto.wos.BusinessType;
 import com.io.portainer.data.dto.wos.WosMessageDto;
 import com.io.portainer.data.dto.wos.WosUser;

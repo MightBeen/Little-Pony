@@ -6,6 +6,7 @@ import com.io.portainer.data.entity.ptr.PtrEndpoint;
 import com.io.portainer.data.entity.ptr.PtrUserEndpoint;
 import com.io.portainer.data.entity.ptr.ResourceType;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -71,5 +72,24 @@ public class CommonUtils {
             result.add(type.code);
         }
         return result;
+    }
+
+    /**
+     * 用于注入portainer实体类字段。方法内未作校验，使用时需保证item 和 value 不为空且为同一实体类
+     * @param fields 需要替换的字段
+     * @param item 被替换对象
+     * @param value 值提供对象
+     */
+    public static void fieldInjection(List<Field> fields, Object item, Object value){
+            for (Field field : fields) {
+                try {
+                    field.setAccessible(true);
+                    field.set(item, field.get(value));
+                    field.setAccessible(false);
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                    System.out.println(e.getMessage());
+                }
+            }
     }
 }

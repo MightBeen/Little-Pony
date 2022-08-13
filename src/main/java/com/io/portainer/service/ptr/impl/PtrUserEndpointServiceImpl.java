@@ -5,8 +5,7 @@ import com.io.portainer.common.timer.Checkable;
 import com.io.portainer.common.timer.RegularService;
 import com.io.portainer.common.exception.PortainerException;
 import com.io.portainer.common.utils.CommonUtils;
-import com.io.portainer.common.utils.PortainerConnector;
-import com.io.portainer.common.utils.PtrJsonParser;
+import com.io.portainer.common.utils.connect.PortainerConnector;
 import com.io.portainer.data.entity.ptr.PtrEndpoint;
 import com.io.portainer.data.entity.ptr.PtrUser;
 import com.io.portainer.data.entity.ptr.PtrUserEndpoint;
@@ -23,7 +22,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.util.*;
 
 /**

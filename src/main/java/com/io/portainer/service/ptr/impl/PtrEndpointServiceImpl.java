@@ -2,9 +2,8 @@ package com.io.portainer.service.ptr.impl;
 
 import cn.hutool.http.HttpException;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.io.portainer.common.exception.PortainerException;
 import com.io.portainer.common.utils.CommonUtils;
-import com.io.portainer.common.utils.PortainerConnector;
+import com.io.portainer.common.utils.connect.PortainerConnector;
 import com.io.portainer.common.utils.PtrJsonParser;
 import com.io.portainer.data.entity.ptr.PtrEndpoint;
 import com.io.portainer.data.entity.ptr.PtrUserEndpoint;
@@ -83,9 +82,9 @@ public class PtrEndpointServiceImpl extends ServiceImpl<PtrEndpointMapper, PtrEn
     @Transactional
     public List<PtrEndpoint> updatePtrEndpointsDataFromPtr() {
         // 从portainer获取的数据
-        List<PtrEndpoint> ptrEndpointList = new ArrayList<PtrEndpoint>();
+        List<PtrEndpoint> ptrEndpointList = null;
         // 从管理系统数据库中获取的数据
-        List<PtrEndpoint> dbEndpoints = new ArrayList<PtrEndpoint>();
+        List<PtrEndpoint> dbEndpoints = null;
 
         List<PtrEndpoint> newEndpoints = null;
 
@@ -110,29 +109,19 @@ public class PtrEndpointServiceImpl extends ServiceImpl<PtrEndpointMapper, PtrEn
             dbEndpoints = this.list();
 
             List<Field> updatableFields = new PtrJsonParser<PtrEndpoint>(PtrEndpoint.class).getUpdatableFields();
-//            updatableFields.forEach(System.out::println);
 
             // 将数据合并
             // TODO: 用二分查找优化搜索过程
             for (PtrEndpoint endpoint : ptrEndpointList) {
                 dbEndpoints.forEach(u -> {
                     if (u.getId().equals(endpoint.getId())) {
-                        for (Field field : updatableFields) {
-                            try {
-                                field.setAccessible(true);
-                                field.set(endpoint, field.get(u));
-                                field.setAccessible(false);
-                            } catch (IllegalAccessException e) {
-                                e.printStackTrace();
-                                System.out.println(e.getMessage());
-                            }
-                        }
+                        CommonUtils.fieldInjection(updatableFields, u, endpoint);
                         endpoint.setUpdated(LocalDateTime.now());
                     }
                 });
             }
 
-            // TODO : 同时更新ptr_user_endpoint表
+            // 同时更新ptr_user_endpoint表
             // 更新 user_endpoint 表
 
             // ue表所有数据

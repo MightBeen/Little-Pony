@@ -1,6 +1,7 @@
 package com.io.portainer.data.entity.ptr;
 
 import com.baomidou.mybatisplus.annotation.TableField;
+import com.io.core.common.wrapper.ConstValue;
 import com.io.portainer.common.annotation.PtrMapper;
 import com.io.portainer.common.utils.CommonUtils;
 import lombok.Data;
@@ -40,6 +41,10 @@ public class PtrEndpoint extends PtrBaseEntity{
      */
     private Integer resourceType;
 
+    /**
+     * 资源类型的使用人数容量，仅当当前资源类型为共享型时有效
+     */
+    private Integer capacity;
 
     private String description;
 
@@ -62,11 +67,15 @@ public class PtrEndpoint extends PtrBaseEntity{
     public boolean available(Integer resourceType) {
         return this.getStatus().equals(1)
                 && resourceType.equals(this.getResourceType())
-                && this.getUserIds().size() < CommonUtils.getCapacity(resourceType);
+                && (ConstValue.SINGLE_RESOURCE.equals(this.getResourceType()) || this.getUserIds().size() < this.getCapacity());
     }
 
     public int getSpace(){
-        int res = CommonUtils.getCapacity(this.getResourceType()) - this.getUserIds().size();
-        return Math.max(res, 0);
+        int capacity;
+        if ((ConstValue.SINGLE_RESOURCE.equals(this.getResourceType())))
+            capacity = 1;
+        else
+            capacity = this.getCapacity();
+        return Math.max(capacity -  this.getUserIds().size(), 0);
     }
 }

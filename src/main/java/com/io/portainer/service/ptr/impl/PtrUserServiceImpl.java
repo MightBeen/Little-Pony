@@ -3,6 +3,7 @@ package com.io.portainer.service.ptr.impl;
 import cn.hutool.http.HttpException;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.io.core.common.wrapper.ConstValue;
+import com.io.portainer.common.factory.GpuResourceTypeFactory;
 import com.io.portainer.common.timer.Checkable;
 import com.io.portainer.common.timer.RegularService;
 import com.io.portainer.common.exception.ApplyRejectException;
@@ -24,13 +25,11 @@ import com.io.portainer.service.sys.SysCheckListService;
 import com.io.portainer.service.sys.SysWaitListService;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Response;
-import okhttp3.ResponseBody;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -203,7 +202,7 @@ public class PtrUserServiceImpl extends ServiceImpl<PtrUserMapper, PtrUser>
         List<SysWaitList> waitList = sysWaitListService.list(new QueryWrapper<SysWaitList>().eq("wos_id", ptrUser.getWosId()));
 
         // 检查申请资源类型是否有效
-        CommonUtils.getCapacity(resourceType);
+        GpuResourceTypeFactory.checkResourceTypeCode(resourceType);
 
         if(waitList.size() > 0)
             // TODO: 新建一个异常类

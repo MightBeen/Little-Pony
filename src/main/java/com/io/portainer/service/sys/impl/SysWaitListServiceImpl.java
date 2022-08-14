@@ -106,41 +106,6 @@ public class SysWaitListServiceImpl extends ServiceImpl<SysWaitListMapper, SysWa
                 geEndPointAccess(peek, ep);
             }
         }
-
-//        // 查看对应资源是否由可用。如果可用，直接设为过期
-//    label:
-//        for (SysWaitList item : lists) {
-//            Integer resourceType = item.getResourceType();
-//            for (PtrEndpoint ep : endpoints) {
-//                if (ep.available(resourceType)) {
-////                    getAccessForUser(item);
-////                    lists.remove(item);
-//                    item.setExpired(LocalDateTime.now());
-//                    break label;
-//                }
-//            }
-//        }
-
-//        // 如果对应资源已满，则将过期时间设置为对应资源使用用户中最近过期时间
-//        for (SysWaitList i : lists) {
-//            Integer resourceType = i.getResourceType();
-//            List<LocalDateTime> expiredDates = null;
-//            if (ConstValue.SINGLE_RESOURCE.equals(resourceType) || ConstValue.GROUP_RESOURCE.equals(resourceType)) {
-//                expiredDates = sysCheckListMapper.getExpiredDatesByType(ConstValue.SINGLE_RESOURCE);
-//            } else {
-//                log.error("资源类型不存在：" + resourceType);
-//                continue;
-//            }
-//
-//            // 如果不存在目标资源使用，则说明目标资源已空闲，或出现异常。立即设置为过期，交由删除业务处理
-//            if (expiredDates == null || expiredDates.size() == 0) {
-//                i.setExpired(LocalDateTime.now());
-//                continue;
-//            }
-//            Optional<LocalDateTime> min = expiredDates.stream().min(LocalDateTime::compareTo);
-//            i.setExpired(min.get());
-//        }
-
         return new PriorityQueue<>();
     }
 

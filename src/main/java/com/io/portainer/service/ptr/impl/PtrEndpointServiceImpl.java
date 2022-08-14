@@ -1,7 +1,7 @@
 package com.io.portainer.service.ptr.impl;
 
-import cn.hutool.http.HttpException;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.io.portainer.common.exception.ApiConnectionException;
 import com.io.portainer.common.utils.CommonUtils;
 import com.io.portainer.common.utils.connect.PortainerConnector;
 import com.io.portainer.common.utils.PtrJsonParser;
@@ -12,13 +12,11 @@ import com.io.portainer.service.ptr.PtrEndpointService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.io.portainer.service.ptr.PtrUserEndpointService;
 import okhttp3.Response;
-import okhttp3.ResponseBody;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -102,7 +100,7 @@ public class PtrEndpointServiceImpl extends ServiceImpl<PtrEndpointMapper, PtrEn
             if (ptrResponse.code() == 200) {
                 ptrEndpointList = parser.parseJsonArray(ptrResponse.body().string());
             } else {
-                throw new HttpException("Portainer 连接异常: " + ptrResponse.code());
+                throw new ApiConnectionException("Portainer 连接异常: " + ptrResponse.code());
             }
 
             dbEndpoints.forEach(u -> {
@@ -152,8 +150,8 @@ public class PtrEndpointServiceImpl extends ServiceImpl<PtrEndpointMapper, PtrEn
             this.removeByIds(ids);
             this.saveBatch(newEndpoints);
 
-        } catch (IOException | HttpException e) {
-            log.error("Error getting endpoints from portainer :" + e.getMessage());
+        } catch (IOException e) {
+            log.error(e.getMessage());
             return null;
         }
 

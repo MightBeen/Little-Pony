@@ -4,9 +4,9 @@ server:
 spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/admin_system?useUnicode=true&useSSL=false&characterEncoding=utf8&serverTimezone=GMT%2b8
+    url: jdbc:mysql://8.140.117.144:9443/admin_system?useUnicode=true&useSSL=false&characterEncoding=utf8&serverTimezone=GMT%2b8
     username: root
-    password: 123456
+    password: wc123456
   redis:
     host: 192.168.81.130
     port: 6379
@@ -26,8 +26,8 @@ jwt-utils:
 
 sys-default-setting:
 # ===================== portainer 连接设置 ==========================
-  portainer-access-token: ptr_UftpSP8+k8AXRTkHOaQ4txD7+wDMSGS53SavxJxXBW4=
-  portainer-url: http://localhost:9000/api
+  portainer-access-token: ptr_XxtFqKsKO+bJZdXRqHTCw6TrYCaBkG3nT/kcbaKAN7M=
+  portainer-url: http://8.140.117.144:9000/api
 
 #  ====================== 工单系统连接设置 ====================
   wos-access-token: 123www

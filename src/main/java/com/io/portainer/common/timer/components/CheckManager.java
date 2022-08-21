@@ -1,5 +1,7 @@
 package com.io.portainer.common.timer.components;
 
+import com.io.portainer.common.config.FlexibleSetting;
+import com.io.portainer.common.config.SettingManager;
 import com.io.portainer.common.timer.Checkable;
 import com.io.portainer.common.timer.FrequentTickCheck;
 import com.io.portainer.common.timer.RegularService;
@@ -17,9 +19,11 @@ import java.util.PriorityQueue;
 @Slf4j
 public class CheckManager implements FrequentTickCheck {
 
-    // TODO: t
     @Autowired
     SysDataCache dataCache;
+
+    @Autowired
+    SettingManager settingManager;
 
     @Autowired
     UpdateManager updateManager;
@@ -66,6 +70,11 @@ public class CheckManager implements FrequentTickCheck {
         }
     }
 
+    @Override
+    public boolean isEnabled() {
+        return settingManager.getCurrentSetting().getAutoCheck();
+    }
+
     private void deleteProcess(RegularService service, PriorityQueue<Checkable> queue) {
         Checkable item = queue.peek();
         if (item != null && LocalDateTime.now().compareTo(item.getExpired()) >= 0) {
@@ -73,5 +82,12 @@ public class CheckManager implements FrequentTickCheck {
             queue.remove();
             deleteProcess(service, queue);
         }
+    }
+
+    @Override
+    public void OnException(Throwable throwable) {
+        FlexibleSetting flexibleSetting = new FlexibleSetting();
+        flexibleSetting.setAutoCheck(false);
+        this.settingManager.setSetting(flexibleSetting);
     }
 }

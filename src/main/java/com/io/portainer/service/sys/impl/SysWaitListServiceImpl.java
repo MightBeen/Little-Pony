@@ -32,9 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.PriorityQueue;
+import java.util.*;
 
 /**
  * <p>
@@ -96,8 +94,12 @@ public class SysWaitListServiceImpl extends ServiceImpl<SysWaitListMapper, SysWa
                 if (wl.getResourceType().equals(resourceType))
                     queue.add(wl);
             }
+            // 如果不为独占型，则按剩余空间排序，负载均衡
+            if (!resourceType.equals(ConstValue.SINGLE_RESOURCE))
+                epList.sort(Comparator.comparing(PtrEndpoint::getSpace));
 
-            for (PtrEndpoint ep : epList) {
+            for (int i=epList.size()-1; i>=0; i--) {
+                PtrEndpoint ep = epList.get(i);
                 SysWaitList peek = queue.peek();
                 if (peek == null) {
                     break;
@@ -112,8 +114,6 @@ public class SysWaitListServiceImpl extends ServiceImpl<SysWaitListMapper, SysWa
     @Override
     @Transactional
     public void deleteItem(Checkable item) {
-//        SysWaitList waitList = this.getById(item.getId());
-//        getAccessForUser(waitList);
     }
 
     @Transactional
@@ -192,7 +192,7 @@ public class SysWaitListServiceImpl extends ServiceImpl<SysWaitListMapper, SysWa
     }
 
     @Transactional
-    boolean geEndPointAccess(SysWaitList waitList, PtrEndpoint endpoint) {
+    void geEndPointAccess(SysWaitList waitList, PtrEndpoint endpoint) {
         log.info("正在处理waitList：" + waitList + "至 \t" + endpoint.getId() + "\t" +endpoint.getName());
 
         boolean isSuccess = false;
@@ -272,7 +272,6 @@ public class SysWaitListServiceImpl extends ServiceImpl<SysWaitListMapper, SysWa
             log.error("处理失败");
             sendErrorMessage(checkList);
         }
-        return true;
     }
 
     private void sendErrorMessage(SysCheckList checkList) {
@@ -284,7 +283,8 @@ public class SysWaitListServiceImpl extends ServiceImpl<SysWaitListMapper, SysWa
         WosMessageDto message = new WosMessageDto();
         StringBuilder sb = new StringBuilder();
 
-        PtrUser ptrUser = ptrUserService.getById(checkList.getRelatedUserId());
+        PtrUser ptrUser = Objects.requireNonNull(ptrUserService.getById(checkList.getRelatedUserId()),
+                "用户（id为:" + checkList.getRelatedUserId() +") 不存在，可能已被删除");;
         List<Long> wosIds = sysUserMapper.getOperatorsWosIds();
 
         message.setTitle("Gpu管理系统自动处理出现异常");
@@ -305,7 +305,8 @@ public class SysWaitListServiceImpl extends ServiceImpl<SysWaitListMapper, SysWa
         WosMessageDto message = new WosMessageDto();
         StringBuilder sb = new StringBuilder();
 
-        PtrUser user = ptrUserService.getById(checkList.getRelatedUserId());
+        PtrUser user = Objects.requireNonNull(ptrUserService.getById(checkList.getRelatedUserId()),
+                "用户（id为:" + checkList.getRelatedUserId() +") 不存在，可能已被删除");
 
         message.setReceiver(user.getWosId());
         message.setTitle("资源调度完成");

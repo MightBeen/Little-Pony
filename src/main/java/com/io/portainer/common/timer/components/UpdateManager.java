@@ -1,5 +1,8 @@
 package com.io.portainer.common.timer.components;
 
+import com.io.portainer.common.config.FlexibleSetting;
+import com.io.portainer.common.config.SettingManager;
+import com.io.portainer.common.config.SysSetting;
 import com.io.portainer.common.timer.Checkable;
 import com.io.portainer.common.timer.FixedTickCheck;
 import com.io.portainer.common.timer.RegularService;
@@ -21,6 +24,9 @@ public class UpdateManager implements FixedTickCheck {
 
     @Autowired
     SysDataCache dataCache;
+
+    @Autowired
+    SettingManager settingManager;
 
     private List<RegularService<Checkable>> servicesCache;
 
@@ -74,5 +80,23 @@ public class UpdateManager implements FixedTickCheck {
                 break;
             }
         }
+    }
+
+    @Override
+    public Long getInterval() {
+        return settingManager.getCurrentSetting().getTimerCheck() * 1000L;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        SysSetting currentSetting = settingManager.getCurrentSetting();
+        return currentSetting.getAutoCheck();
+    }
+
+    @Override
+    public void OnException(Throwable throwable) {
+        FlexibleSetting flexibleSetting = new FlexibleSetting();
+        flexibleSetting.setAutoCheck(false);
+        this.settingManager.setSetting(flexibleSetting);
     }
 }

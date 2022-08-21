@@ -70,7 +70,7 @@ public class PtrEndpoint extends PtrBaseEntity{
                 && (ConstValue.SINGLE_RESOURCE.equals(this.getResourceType()) || this.getUserIds().size() < this.getCapacity());
     }
 
-    public int getSpace(){
+    public Integer getSpace(){
         int capacity;
         if ((ConstValue.SINGLE_RESOURCE.equals(this.getResourceType())))
             capacity = 1;

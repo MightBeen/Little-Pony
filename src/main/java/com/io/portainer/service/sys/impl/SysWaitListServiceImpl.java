@@ -214,6 +214,7 @@ public class SysWaitListServiceImpl extends ServiceImpl<SysWaitListMapper, SysWa
             // 如果不存在，则说明出现异常
             checkList.setType(ConstValue.ERROR_LIST_TYPE);
             // TODO: 2022/7/15 记入日志，给管理员发送消息
+
             log.error(message + "： " + resourceType + "-----" + waitList);
             log.error(message + " ----" + endpoints);
         }

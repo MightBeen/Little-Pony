@@ -1,7 +1,9 @@
 package com.io.portainer.data.entity.sys;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
@@ -15,6 +17,7 @@ import java.time.LocalDateTime;
  * @since 2022-07-10
  */
 @Data
+
 public class SysLog{
 
     private static final long serialVersionUID = 1L;
@@ -37,4 +40,10 @@ public class SysLog{
     private String title;
 
     private LocalDateTime created;
+
+    /**
+     * 日志类型，如系统自动操作，管理员操作，系统异常
+     */
+    private Integer type;
+
 }

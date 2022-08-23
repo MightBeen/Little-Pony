@@ -15,9 +15,11 @@ import java.util.List;
  */
 public interface PtrEndpointService extends IService<PtrEndpoint> {
 
-    // TODO: 添加PtrEndPointService分页查询
-    // TODO: 添加通过Portainer查询
+
+
+
     List<PtrEndpoint> getPtrEndpoints();
+    List<PtrEndpoint> selectPtrEndpointsByPage(Integer pageNo, Integer pageSize);
 
     PtrEndpoint getPtrEndpointById(Long id);
 

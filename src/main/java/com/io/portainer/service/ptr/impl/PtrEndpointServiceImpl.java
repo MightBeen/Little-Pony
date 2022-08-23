@@ -2,12 +2,15 @@ package com.io.portainer.service.ptr.impl;
 
 import cn.hutool.http.HttpException;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.io.portainer.common.exception.PortainerException;
 import com.io.portainer.common.utils.CommonUtils;
 import com.io.portainer.common.utils.PortainerConnector;
 import com.io.portainer.common.utils.PtrJsonParser;
 import com.io.portainer.data.entity.ptr.PtrEndpoint;
 import com.io.portainer.data.entity.ptr.PtrUserEndpoint;
+import com.io.portainer.data.entity.sys.SysLog;
 import com.io.portainer.mapper.ptr.PtrEndpointMapper;
 import com.io.portainer.service.ptr.PtrEndpointService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -42,6 +45,7 @@ public class PtrEndpointServiceImpl extends ServiceImpl<PtrEndpointMapper, PtrEn
     @Autowired
     PortainerConnector portainerConnector;
 
+
     private String baseUrl = "/endpoints";
 
     /**
@@ -55,6 +59,16 @@ public class PtrEndpointServiceImpl extends ServiceImpl<PtrEndpointMapper, PtrEn
             edp.setUserIds(getUserIdsByEndPoint(edp));
         });
         return endPoints;
+    }
+
+    @Override
+    public List<PtrEndpoint> selectPtrEndpointsByPage(Integer pageNo, Integer pageSize) {
+        IPage<PtrEndpoint> page = new Page<>(pageNo, pageSize);
+        QueryWrapper<PtrEndpoint> wrapper = new QueryWrapper<>();
+        wrapper.orderByDesc("created");
+        IPage<PtrEndpoint> list = this.page(page,wrapper);
+        List<PtrEndpoint> gc=list.getRecords();
+        return gc;
     }
 
     @Override
@@ -132,7 +146,6 @@ public class PtrEndpointServiceImpl extends ServiceImpl<PtrEndpointMapper, PtrEn
                 });
             }
 
-            // TODO : 同时更新ptr_user_endpoint表
             // 更新 user_endpoint 表
 
             // ue表所有数据

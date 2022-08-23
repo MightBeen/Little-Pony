@@ -15,6 +15,7 @@ import com.io.portainer.service.ptr.PtrEndpointService;
 import com.io.portainer.service.ptr.PtrUserEndpointService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.io.portainer.service.ptr.PtrUserService;
+import com.io.portainer.service.sys.SysLogService;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Response;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,6 +50,8 @@ public class PtrUserEndpointServiceImpl extends ServiceImpl<PtrUserEndpointMappe
     @Autowired
     PortainerConnector portainerConnector;
 
+    @Autowired
+    SysLogService sysLogService;
     /**
      * 顺便会更新节点
      */
@@ -67,7 +70,8 @@ public class PtrUserEndpointServiceImpl extends ServiceImpl<PtrUserEndpointMappe
                 PtrUser user = ptrUserService.getById(userid);
                 if (user == null) {
                     updated = true;
-                    log.info("User :" + userid + "不存在，自动回收其访问权限");
+
+                    sysLogService.recordLog("User :" + userid + "不存在，自动回收其访问权限",null,"处理僵尸用户", 0);
                     this.remove(new QueryWrapper<PtrUserEndpoint>()
                             .eq("user_id", userid));
                     it.remove();
@@ -86,6 +90,7 @@ public class PtrUserEndpointServiceImpl extends ServiceImpl<PtrUserEndpointMappe
     @Transactional
     public void deleteItem(Checkable item) {
         log.info("执行删除：" + item);
+        //sysLogService.recordLog("执行删除：" + item, null, )
         PtrUserEndpoint userEndpoint = this.getById(item.getId());
         PtrEndpoint e = ptrEndpointService.getPtrEndpointById(userEndpoint.getEndpointId());
         e.getUserIds().remove(userEndpoint.getUserId());
@@ -122,9 +127,4 @@ public class PtrUserEndpointServiceImpl extends ServiceImpl<PtrUserEndpointMappe
     }
 
 
-    @Override
-    public PtrUserEndpoint updatePtrUserEndpointData(PtrUserEndpoint u) {
-        updateById(u);
-        return u;
-    }
 }

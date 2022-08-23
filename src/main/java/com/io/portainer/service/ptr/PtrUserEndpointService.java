@@ -13,9 +13,5 @@ import com.baomidou.mybatisplus.extension.service.IService;
  */
 public interface PtrUserEndpointService extends IService<PtrUserEndpoint> {
 
-    /**
-     * 从申请中修改用户,目前专门为请求延长expired服务
-     */
-    public PtrUserEndpoint updatePtrUserEndpointData(PtrUserEndpoint u);
 }
 

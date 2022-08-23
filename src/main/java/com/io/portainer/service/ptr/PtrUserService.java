@@ -1,6 +1,7 @@
 package com.io.portainer.service.ptr;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.io.portainer.data.entity.ptr.PtrEndpoint;
 import com.io.portainer.data.entity.ptr.PtrUser;
 import com.io.portainer.data.entity.ptr.PtrUserEndpoint;
 
@@ -9,7 +10,7 @@ import java.util.List;
 
 public interface PtrUserService extends IService<PtrUser> {
 
-    // TODO: 添加PtrEndPointService分页查询
+
 
     /**
      * 从portainer中获取用户列表

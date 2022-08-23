@@ -11,6 +11,7 @@ import com.io.portainer.data.dto.wos.WosMessageDto;
 import com.io.portainer.data.dto.wos.WosUser;
 import com.io.portainer.data.entity.ptr.PtrUser;
 import com.io.portainer.data.entity.ptr.PtrUserEndpoint;
+import com.io.portainer.service.sys.SysLogService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
@@ -30,6 +31,10 @@ public class PtrUserController extends PtrBaseController {
 
     @Autowired
     WosSysConnector wosSysConnector;
+
+    @Autowired
+    SysLogService sysLogService;
+
 
 
     @PostMapping("/apply")
@@ -78,14 +83,14 @@ public class PtrUserController extends PtrBaseController {
                         ptrUser1.getId()));
                 if(ptrUserEndpoint !=null) {
                     ptrUserEndpoint.setExpired(ptrUserEndpoint.getExpired().plusDays(wosUser.getApplyDays()));
-                    ptrUserEndpointService.updatePtrUserEndpointData(ptrUserEndpoint);
+                    ptrUserEndpointService.updateById(ptrUserEndpoint);
+                    sysLogService.recordLog("处理用户申请延期：" + wosUser.getApplyDays(),null, "用户申请", 0);
                 }
                 else
-                    //throw new IllegalArgumentException("不存在的用户名或此用户仍在等待队列：" + wosUser.getUsername());
-                    return ResultWrapper.fail("code:6000 不存在的用户名：" + wosUser.getUsername());
+                    return ResultWrapper.fail(6000, "不存在的用户名：" + wosUser.getUsername());
             return ResultWrapper.success( "操作成功，延期申请已在处理",ptrUser1);
             } else
-                return ResultWrapper.fail("code:6000 不存在的用户名：" + wosUser.getUsername());
+                return ResultWrapper.fail(6000,"不存在的用户名：" + wosUser.getUsername());
 
         } else
             throw new IllegalArgumentException("不支持的业务类型：" + wosUser.getBusinessType());

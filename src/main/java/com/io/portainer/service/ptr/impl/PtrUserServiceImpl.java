@@ -5,13 +5,14 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.io.core.common.wrapper.ConstValue;
+import com.io.portainer.common.factory.GpuResourceTypeFactory;
 import com.io.portainer.common.timer.Checkable;
 import com.io.portainer.common.timer.RegularService;
 import com.io.portainer.common.exception.ApplyRejectException;
 import com.io.portainer.common.exception.PortainerException;
 import com.io.portainer.common.timer.components.UpdateManager;
 import com.io.portainer.common.utils.CommonUtils;
-import com.io.portainer.common.utils.PortainerConnector;
+import com.io.portainer.common.utils.connect.PortainerConnector;
 import com.io.portainer.common.utils.PtrJsonParser;
 import com.io.portainer.data.entity.sys.SysCheckList;
 import com.io.portainer.data.entity.ptr.PtrUser;
@@ -28,15 +29,14 @@ import com.io.portainer.service.sys.SysLogService;
 import com.io.portainer.service.sys.SysWaitListService;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Response;
-import okhttp3.ResponseBody;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.PriorityQueue;
 
@@ -136,62 +136,52 @@ public class PtrUserServiceImpl extends ServiceImpl<PtrUserMapper, PtrUser>
         List<PtrUser> newUsers = null;
 
         // 从管理系统中获取的用户
-        List<PtrUser> dataBaseUserList;
+        List<PtrUser> dataBaseUserList = this.list();
 
         // 从portainer获取的用户
         List<PtrUser> ptrUserList;
 
+        // 管理系统中用户id
+        List<Long> ids = new ArrayList<>();
+
+
+        HashMap<Long,PtrUser> userMap = new HashMap<>();
+
+
+        PtrJsonParser<PtrUser> parser = new PtrJsonParser<>(PtrUser.class);
+
+
         try {
             response = portainerConnector.getRequest(baseUrl);
-
             if (response.code() == 200) {
-                PtrJsonParser<PtrUser> parser = new PtrJsonParser<>(PtrUser.class);
-                ResponseBody body = response.body();
-                assert body != null;
-                ptrUserList = parser.parseJsonArray(body.string());
-
-                for (PtrUser ptu : ptrUserList) {
-                    ptu.setCreated(LocalDateTime.now());
-                }
+                ptrUserList = parser.parseJsonArray(response.body().string());
             } else {
-                sysLogService.recordLog("Portainer 连接异常: " + response.code(),null,"连接异常" ,2);
                 throw new HttpException("Portainer 连接异常: " + response.code());
             }
 
-            dataBaseUserList = this.list();
 
-            List<Field> updatableFields = new PtrJsonParser<PtrUser>(PtrUser.class).getUpdatableFields();
+            dataBaseUserList.forEach(u ->{
+                ids.add(u.getId());
+                userMap.put(u.getId(), u);
+            });
 
             // 将数据合并
             for (PtrUser ptrUser : ptrUserList) {
-                dataBaseUserList.forEach(u -> {
-                    if (u.getId().equals(ptrUser.getId())) {
-                        for (Field field : updatableFields) {
-                            try {
-                                field.setAccessible(true);
-                                field.set(ptrUser, field.get(u));
-                                field.setAccessible(false);
-                            } catch (IllegalAccessException e) {
-                                e.printStackTrace();
-                                System.out.println(e.getMessage());
-                            }
-                        }
-                        ptrUser.setUpdated(LocalDateTime.now());
-                    }
-                });
+                PtrUser u = userMap.get(ptrUser.getId());
+                if (u != null) {
+                    CommonUtils.fieldInjection(parser.getUpdatableFields(), ptrUser, u);
+                    ptrUser.setUpdated(LocalDateTime.now());
+                } else
+                    ptrUser.setCreated(LocalDateTime.now());
             }
             newUsers = ptrUserList;
 
-            List<Long> ids = new ArrayList<>();
-            dataBaseUserList.forEach(u -> ids.add(u.getId()));
-            // 移除旧数据
+            // 移除旧数据并保存
             this.removeByIds(ids);
-
             this.saveBatch(newUsers);
-
         } catch (IOException | HttpException e) {
-//            e.printStackTrace();
             log.error("Error getting users from portainer");
+            log.error(e.getMessage());
             return null;
         }
 
@@ -207,14 +197,12 @@ public class PtrUserServiceImpl extends ServiceImpl<PtrUserMapper, PtrUser>
     public boolean getEndPointAccessById(PtrUser ptrUser, int resourceType, int day) throws IOException {
         if (ptrUser == null || ptrUser.getWosId() == null) throw new IllegalArgumentException("ptrUser or jobId cannot be null");
         if (ptrUser.getRole() == 1) {
-            sysLogService.recordLog("申请用户不能为管理员",null,"申请异常" ,2);
             throw new ApplyRejectException("申请用户不能为管理员");
         }
 
         // 检查是否重复申请
         List<PtrUserEndpoint> user_ids01 = ptrUserEndpointService.list(new QueryWrapper<PtrUserEndpoint>().eq("user_id", ptrUser.getId()));
         if (!user_ids01.isEmpty()) {
-            sysLogService.recordLog("用户申请重复：" + ptrUser.getUsername(),null,"申请异常" ,2);
             throw new ApplyRejectException("重复申请 ：" + ptrUser.getUsername());
         }
 
@@ -222,7 +210,7 @@ public class PtrUserServiceImpl extends ServiceImpl<PtrUserMapper, PtrUser>
         List<SysWaitList> waitList = sysWaitListService.list(new QueryWrapper<SysWaitList>().eq("wos_id", ptrUser.getWosId()));
 
         // 检查申请资源类型是否有效
-        CommonUtils.getCapacity(resourceType);
+        GpuResourceTypeFactory.checkResourceTypeCode(resourceType);
 
         if(waitList.size() > 0) {
             // TODO: 新建一个异常类
@@ -254,6 +242,8 @@ public class PtrUserServiceImpl extends ServiceImpl<PtrUserMapper, PtrUser>
         // TODO 完成自定义序列化
         PtrJsonParser<PtrUser> parser = new PtrJsonParser<PtrUser>(PtrUser.class);
 
+//        System.out.println(body);
+        try {
             String body = parser.getObjectMapper().writeValueAsString(u);
             Response response = portainerConnector.postRequest(baseUrl, body);
 
@@ -263,13 +253,10 @@ public class PtrUserServiceImpl extends ServiceImpl<PtrUserMapper, PtrUser>
 
             u.setId(builtUser.getId());
 
-            if(response.code() == 409 ) {
-                u.setUsername(u.getUsername() + "(" + u.getStudentJobId() + ")" );
-                return addPtrUserToPtr(u);
-            }
-        if (response.code() != 200 ) {
-            // TODO: catch 409异常
-            // TODO: 给管理员发送异常信息
+
+            if (response.code() != 200) {
+                // TODO: 给管理员发送异常信息
+
                 // 将异常加入checkList
                 SysCheckList item = new SysCheckList();
 
@@ -281,11 +268,29 @@ public class PtrUserServiceImpl extends ServiceImpl<PtrUserMapper, PtrUser>
 
                 throw new PortainerException(responseBody, item, response.code());
             }
-        response.close();
-        u.setCreated(LocalDateTime.now());
-        save(u);
-        sysLogService.recordLog("添加用户：" + u.getUsername() + "到portainer", null                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               ,
-                "用户申请" , 0);
+            response.close();
+            u.setCreated(LocalDateTime.now());
+            save(u);
+            // TODO: catch 409异常
+            //finished 8.1
+        } catch (PortainerException e) {
+            updateManager.updateByType(PtrUser.class);
+            while (true) {
+                u.setUsername(u.getUsername() + "*");
+                String body = parser.getObjectMapper().writeValueAsString(u);
+                Response response = portainerConnector.postRequest(baseUrl, body);
+                String responseBody = response.body().string();
+                PtrUser builtUser = parser.parseJson(responseBody);
+                u.setId(builtUser.getId());
+                u.setCreated(LocalDateTime.now());
+                response.close();
+                PtrUser ptrUser = this.getOne(new QueryWrapper<PtrUser>().eq("username",
+                        u.getUsername()));
+                if(ptrUser == null) break;
+            }
+            save(u);
+
+        }
         return u;
     }
 

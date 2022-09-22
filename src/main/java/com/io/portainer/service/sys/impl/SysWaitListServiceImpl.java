@@ -6,11 +6,9 @@ import com.io.core.common.wrapper.ConstValue;
 import com.io.core.mapper.SysUserMapper;
 import com.io.portainer.common.timer.Checkable;
 import com.io.portainer.common.timer.RegularService;
-import com.io.portainer.common.timer.components.SysDataCache;
-import com.io.portainer.common.exception.PortainerException;
 import com.io.portainer.common.utils.CommonUtils;
-import com.io.portainer.common.utils.PortainerConnector;
-import com.io.portainer.common.utils.WosSysConnector;
+import com.io.portainer.common.utils.connect.PortainerConnector;
+import com.io.portainer.common.utils.connect.WosSysConnector;
 import com.io.portainer.data.dto.wos.WosMessageDto;
 import com.io.portainer.data.entity.ptr.PtrEndpoint;
 import com.io.portainer.data.entity.ptr.PtrUser;
@@ -34,9 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.PriorityQueue;
+import java.util.*;
 
 /**
  * <p>
@@ -98,8 +94,12 @@ public class SysWaitListServiceImpl extends ServiceImpl<SysWaitListMapper, SysWa
                 if (wl.getResourceType().equals(resourceType))
                     queue.add(wl);
             }
+            // 如果不为独占型，则按剩余空间排序，负载均衡
+            if (!resourceType.equals(ConstValue.SINGLE_RESOURCE))
+                epList.sort(Comparator.comparing(PtrEndpoint::getSpace));
 
-            for (PtrEndpoint ep : epList) {
+            for (int i=epList.size()-1; i>=0; i--) {
+                PtrEndpoint ep = epList.get(i);
                 SysWaitList peek = queue.peek();
                 if (peek == null) {
                     break;
@@ -108,49 +108,12 @@ public class SysWaitListServiceImpl extends ServiceImpl<SysWaitListMapper, SysWa
                 geEndPointAccess(peek, ep);
             }
         }
-
-//        // 查看对应资源是否由可用。如果可用，直接设为过期
-//    label:
-//        for (SysWaitList item : lists) {
-//            Integer resourceType = item.getResourceType();
-//            for (PtrEndpoint ep : endpoints) {
-//                if (ep.available(resourceType)) {
-////                    getAccessForUser(item);
-////                    lists.remove(item);
-//                    item.setExpired(LocalDateTime.now());
-//                    break label;
-//                }
-//            }
-//        }
-
-//        // 如果对应资源已满，则将过期时间设置为对应资源使用用户中最近过期时间
-//        for (SysWaitList i : lists) {
-//            Integer resourceType = i.getResourceType();
-//            List<LocalDateTime> expiredDates = null;
-//            if (ConstValue.SINGLE_RESOURCE.equals(resourceType) || ConstValue.GROUP_RESOURCE.equals(resourceType)) {
-//                expiredDates = sysCheckListMapper.getExpiredDatesByType(ConstValue.SINGLE_RESOURCE);
-//            } else {
-//                log.error("资源类型不存在：" + resourceType);
-//                continue;
-//            }
-//
-//            // 如果不存在目标资源使用，则说明目标资源已空闲，或出现异常。立即设置为过期，交由删除业务处理
-//            if (expiredDates == null || expiredDates.size() == 0) {
-//                i.setExpired(LocalDateTime.now());
-//                continue;
-//            }
-//            Optional<LocalDateTime> min = expiredDates.stream().min(LocalDateTime::compareTo);
-//            i.setExpired(min.get());
-//        }
-
         return new PriorityQueue<>();
     }
 
     @Override
     @Transactional
     public void deleteItem(Checkable item) {
-//        SysWaitList waitList = this.getById(item.getId());
-//        getAccessForUser(waitList);
     }
 
     @Transactional
@@ -230,7 +193,7 @@ public class SysWaitListServiceImpl extends ServiceImpl<SysWaitListMapper, SysWa
     }
 
     @Transactional
-    boolean geEndPointAccess(SysWaitList waitList, PtrEndpoint endpoint) {
+    void geEndPointAccess(SysWaitList waitList, PtrEndpoint endpoint) {
         log.info("正在处理waitList：" + waitList + "至 \t" + endpoint.getId() + "\t" +endpoint.getName());
 
         boolean isSuccess = false;
@@ -310,7 +273,6 @@ public class SysWaitListServiceImpl extends ServiceImpl<SysWaitListMapper, SysWa
             log.error("处理失败");
             sendErrorMessage(checkList);
         }
-        return true;
     }
 
     private void sendErrorMessage(SysCheckList checkList) {
@@ -322,7 +284,8 @@ public class SysWaitListServiceImpl extends ServiceImpl<SysWaitListMapper, SysWa
         WosMessageDto message = new WosMessageDto();
         StringBuilder sb = new StringBuilder();
 
-        PtrUser ptrUser = ptrUserService.getById(checkList.getRelatedUserId());
+        PtrUser ptrUser = Objects.requireNonNull(ptrUserService.getById(checkList.getRelatedUserId()),
+                "用户（id为:" + checkList.getRelatedUserId() +") 不存在，可能已被删除");;
         List<Long> wosIds = sysUserMapper.getOperatorsWosIds();
 
         message.setTitle("Gpu管理系统自动处理出现异常");
@@ -343,7 +306,8 @@ public class SysWaitListServiceImpl extends ServiceImpl<SysWaitListMapper, SysWa
         WosMessageDto message = new WosMessageDto();
         StringBuilder sb = new StringBuilder();
 
-        PtrUser user = ptrUserService.getById(checkList.getRelatedUserId());
+        PtrUser user = Objects.requireNonNull(ptrUserService.getById(checkList.getRelatedUserId()),
+                "用户（id为:" + checkList.getRelatedUserId() +") 不存在，可能已被删除");
 
         message.setReceiver(user.getWosId());
         message.setTitle("资源调度完成");

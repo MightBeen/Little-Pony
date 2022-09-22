@@ -1,15 +1,7 @@
 package com.io.core;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.io.portainer.common.utils.CommonUtils;
-import com.io.portainer.common.utils.PortainerConnector;
-import com.io.portainer.common.utils.PtrJsonParser;
-import com.io.portainer.data.entity.ptr.PtrEndpoint;
-import com.io.portainer.data.entity.ptr.PtrUser;
-import com.io.portainer.service.ptr.PtrUserService;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 
 import java.io.IOException;
 import java.time.LocalDateTime;

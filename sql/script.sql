@@ -1,4 +1,4 @@
-create table if not exists ptr_endpoint
+create table ptr_endpoint
 (
     id            bigint       not null
         primary key,
@@ -12,24 +12,25 @@ create table if not exists ptr_endpoint
 )
     comment '即gpu资源虚拟机';
 
-create table if not exists ptr_user
+create table ptr_user
 (
-    id       bigint       not null
+    id             bigint       not null
         primary key,
-    username varchar(20)  not null,
-    password varchar(25)  null comment 'portainer密码，最小为12位',
-    role     int          not null comment 'Portainer 用户权限，1为管理员，2为普通用户',
-    job_id   bigint       null comment '学号或工号',
-    updated  datetime     null,
-    created  datetime     not null,
-    remark   varchar(100) null comment '备注',
+    username       varchar(20)  not null,
+    password       varchar(25)  null comment 'portainer密码，最小为12位',
+    role           int          not null comment 'Portainer 用户权限，1为管理员，2为普通用户',
+    student_job_id varchar(45)  null comment '学号或工号',
+    wos_id         bigint       null comment '工单系统中id',
+    updated        datetime     null,
+    created        datetime     not null,
+    remark         varchar(100) null comment '备注',
     constraint ptr_user_job_id_uindex
-        unique (job_id),
+        unique (wos_id),
     constraint ptr_user_username_uindex
         unique (username)
 );
 
-create table if not exists ptr_user_endpoint
+create table ptr_user_endpoint
 (
     id          bigint auto_increment
         primary key,
@@ -40,7 +41,7 @@ create table if not exists ptr_user_endpoint
     updated     datetime null
 );
 
-create table if not exists sys_check_list
+create table sys_check_list
 (
     id                    bigint auto_increment
         primary key,
@@ -51,13 +52,14 @@ create table if not exists sys_check_list
     message               varchar(300)     null comment '相关信息',
     status                int default 0    not null comment '处理状态，0为未处理，1为已完成',
     created               datetime         not null,
+    updated               datetime         null,
     wait_list_id          bigint           null comment '如果存在，则为对应等待队列中id',
     constraint sys_check_list_wait_list_id_uindex
         unique (wait_list_id)
 )
     comment '代办事项清单，用于管理员人工进行操作';
 
-create table if not exists sys_log
+create table sys_log
 (
     id          bigint auto_increment
         primary key,
@@ -68,7 +70,7 @@ create table if not exists sys_log
 )
     comment '日志类，包括操作日志和请求接收日志';
 
-create table if not exists sys_menu
+create table sys_menu
 (
     id        bigint auto_increment
         primary key,
@@ -88,7 +90,7 @@ create table if not exists sys_menu
 )
     charset = utf8;
 
-create table if not exists sys_role
+create table sys_role
 (
     id      bigint auto_increment
         primary key,
@@ -105,7 +107,7 @@ create table if not exists sys_role
 )
     charset = utf8;
 
-create table if not exists sys_role_menu
+create table sys_role_menu
 (
     id      bigint auto_increment
         primary key,
@@ -113,25 +115,26 @@ create table if not exists sys_role_menu
     menu_id bigint not null
 );
 
-create table if not exists sys_user
+create table sys_user
 (
-    id         bigint auto_increment
+    id           bigint auto_increment
         primary key,
-    username   varchar(64)  null,
-    password   varchar(64)  null,
-    avatar     varchar(255) null comment '用户头像',
-    email      varchar(64)  null,
-    city       varchar(64)  null,
-    created    datetime     null,
-    updated    datetime     null,
-    last_login datetime     null,
-    statu      int(5)       not null,
+    username     varchar(64)  null,
+    password     varchar(64)  null,
+    avatar       varchar(255) null comment '用户头像',
+    wos_id       bigint       null comment '在工单系统中对应id',
+    studentJobId varchar(64)  null comment '学/工号',
+    city         varchar(64)  null,
+    created      datetime     null,
+    updated      datetime     null,
+    last_login   datetime     null,
+    statu        int(5)       not null,
     constraint UK_USERNAME
         unique (username)
 )
     charset = utf8;
 
-create table if not exists sys_user_role
+create table sys_user_role
 (
     id      bigint auto_increment
         primary key,
@@ -139,16 +142,15 @@ create table if not exists sys_user_role
     role_id bigint not null
 );
 
-create table if not exists sys_wait_list
+create table sys_wait_list
 (
-    id              bigint auto_increment
+    id              bigint       not null
         primary key,
     related_user_id bigint       not null,
-    job_id          bigint       not null,
+    wos_id          bigint       not null comment '工单系统中对应id',
     resource_type   int          not null,
     apply_days      int          not null,
     remark          varchar(300) null,
     created         datetime     not null
 );
-
 

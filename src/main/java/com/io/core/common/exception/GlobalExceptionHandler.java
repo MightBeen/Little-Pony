@@ -5,7 +5,7 @@ import com.io.core.mapper.SysUserMapper;
 import com.io.portainer.common.exception.ApplyRejectException;
 import com.io.portainer.common.exception.PortainerException;
 import com.io.portainer.common.exception.WosSysException;
-import com.io.portainer.common.utils.WosSysConnector;
+import com.io.portainer.common.utils.connect.WosSysConnector;
 import com.io.portainer.data.dto.wos.WosMessageDto;
 import io.jsonwebtoken.JwtException;
 import lombok.extern.slf4j.Slf4j;

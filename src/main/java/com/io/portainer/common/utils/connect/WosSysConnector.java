@@ -1,4 +1,4 @@
-package com.io.portainer.common.utils;
+package com.io.portainer.common.utils.connect;
 
 import cn.hutool.http.HttpException;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -38,6 +38,11 @@ public class WosSysConnector extends ApiConnector{
     @Override
     protected String getApiKeyName() {
         return "API-KEY";
+    }
+
+    @Override
+    protected String connectionName() {
+        return "工单系统";
     }
 
     /**

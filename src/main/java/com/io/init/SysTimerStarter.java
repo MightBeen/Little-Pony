@@ -1,12 +1,23 @@
 package com.io.init;
 
+import com.io.core.common.exception.GlobalExceptionHandler;
 import com.io.portainer.common.timer.FixedTickCheck;
 import com.io.portainer.common.timer.FrequentTickCheck;
 import com.io.portainer.common.config.SettingManager;
+import com.io.portainer.common.timer.SysTimeCheck;
+import com.io.portainer.common.timer.components.TimerExceptionHandler;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContext;
 
+import java.lang.reflect.Method;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 用于启用系统计时器服务，只会启动一次。
@@ -19,22 +30,20 @@ public class SysTimerStarter{
 
     private static SysTimerStarter instance;
 
+    private final TimerExceptionHandler exceptionHandler;
+
     private final SettingManager setting;
 
-    /**
-     * 执行单元
-     */
-    private final FixedUnit fixedUnit;
-
-    private final FrequentUnit frequentUnit;
+    private final ThreadPoolExecutor threadPool = new ThreadPoolExecutor(5, 15, 1, TimeUnit.SECONDS,
+            new LinkedBlockingQueue<Runnable>(),
+            Executors.defaultThreadFactory(),
+            new ThreadPoolExecutor.CallerRunsPolicy());
 
 
     /**
      * 使用计时服务的组件，通过ioc容器注册
      */
-    Map<String, FrequentTickCheck> frequentTickComponents;
-
-    Map<String, FixedTickCheck> fixedTickComponents;
+    Map<String, ComponentsUnit> tickComponents = new HashMap<String, ComponentsUnit>();
 
 
     /**
@@ -43,22 +52,21 @@ public class SysTimerStarter{
     private SysTimerStarter(ApplicationContext appContext, SettingManager setting){
         this.appContext = appContext;
         this.setting = setting;
-        this.frequentUnit = new FrequentUnit();
-        this.fixedUnit = new FixedUnit();
+        this.exceptionHandler = appContext.getBean(TimerExceptionHandler.class);
     }
 
 
     private void registrar(){
-        frequentTickComponents = appContext.getBeansOfType(FrequentTickCheck.class);
-        fixedTickComponents = appContext.getBeansOfType(FixedTickCheck.class);
+        Map<String, SysTimeCheck> beans = appContext.getBeansOfType(SysTimeCheck.class);
+        for (String bean : beans.keySet()) {
+            SysTimeCheck sysTimeCheck = beans.get(bean);
+            this.tickComponents.put(bean, new ComponentsUnit(sysTimeCheck, 0L));
+        }
 
         // 日志打印
         log.info("======================= SysTimer注册 =================================");
-        for (String key : frequentTickComponents.keySet()) {
-            log.info("frequentTick组件已注册：" + key);
-        }
-        for (String key : fixedTickComponents.keySet()) {
-            log.info("fixedTick组件已注册：" + key);
+        for (String key : tickComponents.keySet()) {
+            log.info("计时器组件已注册：" + key);
         }
     };
 
@@ -67,11 +75,14 @@ public class SysTimerStarter{
         if (instance == null){
             instance = new SysTimerStarter(context, setting);
             instance.registrar();
-            Thread fixedThread = new Thread(instance.fixedUnit);
-            Thread frequentThread = new Thread(instance.frequentUnit);
+            Thread process = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    instance.process();
+                }
+            });
 
-            fixedThread.start();
-            frequentThread.start();
+            process.start();
 
             System.out.println("start !");
         }
@@ -81,55 +92,45 @@ public class SysTimerStarter{
 
     }
 
-    private class FrequentUnit  implements Runnable{
-        @Override
-        public void run() {
-            while (true) {
-//                System.out.println("周期开始");
-                    // 执行组件中需要定期调用的方法
-//                    System.out.println("======================= 定期执行 ================================");
-                long snap01 = System.currentTimeMillis();
 
-                while (true) {
-                    long snap02 = System.currentTimeMillis();
+    private void process(){
+        while (true) {
+            for (String key : tickComponents.keySet()) {
+                ComponentsUnit componentsUnit = tickComponents.get(key);
+                if (! componentsUnit.getTickCheck().isEnabled())
+                    continue;
 
-                    // 设置时间间隔
-                    if (snap02 - snap01 >= 1000){
-//                        log.info("Snap");
-                        for (String key : frequentTickComponents.keySet()) {
-                            frequentTickComponents.get(key).execute();
-//                            log.info("定期执行：" + key);
-                        }
-                        break;
-                    }
-                }
-            }
-        }
-    }
-
-    private class FixedUnit  implements Runnable{
-        @Override
-        public void run() {
-            while (true) {
-                try {
-//                System.out.println("周期开始");
-                    // 执行组件中需要定期调用的方法
-                    log.info("======================= 定期执行 ================================");
-                    for (String key : fixedTickComponents.keySet()) {
+                if(System.currentTimeMillis() - componentsUnit.getLastUpdated() > componentsUnit.getTickCheck().getInterval()){
+                    if (!(componentsUnit.getTickCheck() instanceof FrequentTickCheck)){
+                        log.info("======================= 定期执行 ================================");
                         log.info("定期执行：" + key);
-                        boolean res = fixedTickComponents.get(key).execute();
-
-                        if (res == false){
-                            // TODO: 异常日志输出
-                        }
                     }
+                    threadPool.execute(() -> {
 
-                    Thread.sleep(setting.getCurrentSetting().getTimerCheck() * 1000);
-                } catch (InterruptedException e) {
-                    System.out.println(e.getMessage());
-                    e.printStackTrace();
+                        try {
+                            componentsUnit.getTickCheck().execute();
+                        } catch (Exception e) {
+                            log.error(e.getMessage(), e);
+                            try {
+                                this.exceptionHandler.HandleException(e);
+                            } catch (Throwable ex) {
+                                log.error(ex.getMessage(), ex);
+                                componentsUnit.getTickCheck().OnException(ex);
+                                throw new RuntimeException(ex);
+                            }
+                        }
+                    });
+                    componentsUnit.setLastUpdated(System.currentTimeMillis());
                 }
             }
+
         }
     }
+
+}
+@Data
+@AllArgsConstructor
+class ComponentsUnit{
+    SysTimeCheck tickCheck;
+    Long lastUpdated;
 }

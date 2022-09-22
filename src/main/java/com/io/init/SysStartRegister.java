@@ -20,6 +20,7 @@ public class SysStartRegister {
     SettingManager settingManager;
 
     public SysStartRegister init(ApplicationContext appContext) {
+        settingManager.checkSetting();
         sysInitStarter.systemInit();
         SysTimerStarter.start(appContext, settingManager);
         return this;

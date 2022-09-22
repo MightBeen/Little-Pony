@@ -9,4 +9,10 @@ public interface SysTimeCheck {
      * 成功返回true，失败返回false
      */
     boolean execute();
+
+    boolean isEnabled();
+
+    Long getInterval();
+
+    void OnException(Throwable throwable);
 }

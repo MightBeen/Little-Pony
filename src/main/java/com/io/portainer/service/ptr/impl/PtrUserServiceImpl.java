@@ -203,6 +203,7 @@ public class PtrUserServiceImpl extends ServiceImpl<PtrUserMapper, PtrUser>
         // 检查是否重复申请
         List<PtrUserEndpoint> user_ids01 = ptrUserEndpointService.list(new QueryWrapper<PtrUserEndpoint>().eq("user_id", ptrUser.getId()));
         if (!user_ids01.isEmpty()) {
+            sysLogService.recordLog("用户申请重复：" + ptrUser.getUsername(),null,"运行时申请异常",2);
             throw new ApplyRejectException("重复申请 ：" + ptrUser.getUsername());
         }
 
@@ -214,7 +215,7 @@ public class PtrUserServiceImpl extends ServiceImpl<PtrUserMapper, PtrUser>
 
         if(waitList.size() > 0) {
             // TODO: 新建一个异常类
-            sysLogService.recordLog("用户申请已在等待队列中：" + ptrUser.getUsername(), null, "申请异常", 2);
+            //sysLogService.recordLog("用户申请已在等待队列中：" + ptrUser.getUsername(), null, "申请异常", 2);
             throw new IllegalArgumentException("已在等待队列中：" + ptrUser.getUsername());
         }
 
@@ -242,55 +243,36 @@ public class PtrUserServiceImpl extends ServiceImpl<PtrUserMapper, PtrUser>
         // TODO 完成自定义序列化
         PtrJsonParser<PtrUser> parser = new PtrJsonParser<PtrUser>(PtrUser.class);
 
-//        System.out.println(body);
-        try {
-            String body = parser.getObjectMapper().writeValueAsString(u);
-            Response response = portainerConnector.postRequest(baseUrl, body);
+        String body = parser.getObjectMapper().writeValueAsString(u);
+        Response response = portainerConnector.postRequest(baseUrl, body);
 
-            String responseBody = response.body().string();
+        String responseBody = response.body().string();
 
-            PtrUser builtUser = parser.parseJson(responseBody);
+        PtrUser builtUser = parser.parseJson(responseBody);
 
-            u.setId(builtUser.getId());
+        u.setId(builtUser.getId());
 
-
-            if (response.code() != 200) {
-                // TODO: 给管理员发送异常信息
-
-                // 将异常加入checkList
-                SysCheckList item = new SysCheckList();
-
-                item.setCreated(LocalDateTime.now());
-                item.setMessage(response.code() + responseBody);
-                item.setRelatedUserId(u.getId());
-                item.setType(ConstValue.ERROR_LIST_TYPE);
-                sysCheckListService.save(item);
-
-                throw new PortainerException(responseBody, item, response.code());
-            }
-            response.close();
-            u.setCreated(LocalDateTime.now());
-            save(u);
-            // TODO: catch 409异常
-            //finished 8.1
-        } catch (PortainerException e) {
-            updateManager.updateByType(PtrUser.class);
-            while (true) {
-                u.setUsername(u.getUsername() + "*");
-                String body = parser.getObjectMapper().writeValueAsString(u);
-                Response response = portainerConnector.postRequest(baseUrl, body);
-                String responseBody = response.body().string();
-                PtrUser builtUser = parser.parseJson(responseBody);
-                u.setId(builtUser.getId());
-                u.setCreated(LocalDateTime.now());
-                response.close();
-                PtrUser ptrUser = this.getOne(new QueryWrapper<PtrUser>().eq("username",
-                        u.getUsername()));
-                if(ptrUser == null) break;
-            }
-            save(u);
-
+        if(response.code() == 409 ) {
+            u.setUsername(u.getUsername() + "(" + u.getStudentJobId() + ")" );
+            return addPtrUserToPtr(u);
         }
+        if (response.code() != 200 ) {
+            // TODO: catch 409异常
+            // TODO: 给管理员发送异常信息
+            // 将异常加入checkList
+            SysCheckList item = new SysCheckList();
+
+            item.setCreated(LocalDateTime.now());
+            item.setMessage(response.code() + responseBody);
+            item.setRelatedUserId(u.getId());
+            item.setType(ConstValue.ERROR_LIST_TYPE);
+            sysCheckListService.save(item);
+
+            throw new PortainerException(responseBody, item, response.code());
+        }
+        response.close();
+        u.setCreated(LocalDateTime.now());
+        save(u);
         return u;
     }
 

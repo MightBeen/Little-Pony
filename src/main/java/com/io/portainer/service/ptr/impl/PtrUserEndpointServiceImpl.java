@@ -69,7 +69,7 @@ public class PtrUserEndpointServiceImpl extends ServiceImpl<PtrUserEndpointMappe
                 if (user == null) {
                     updated = true;
 
-                    sysLogService.recordLog("User :" + userid + "不存在，自动回收其访问权限",null,"处理僵尸用户", 0);
+                    sysLogService.recordLog("User :" + userid + "不存在，自动回收其访问权限",null,"处理过期用户", 0);
                     this.remove(new QueryWrapper<PtrUserEndpoint>()
                             .eq("user_id", userid));
                     it.remove();

@@ -3,11 +3,13 @@ package com.io.portainer.common.factory.apply;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.io.core.common.wrapper.ResultWrapper;
 import com.io.portainer.common.timer.components.UpdateManager;
+import com.io.portainer.common.utils.PasswordUtil;
 import com.io.portainer.common.utils.connect.WosSysConnector;
 import com.io.portainer.data.dto.wos.BusinessType;
 import com.io.portainer.data.dto.wos.WosMessageDto;
 import com.io.portainer.data.dto.wos.WosUser;
 import com.io.portainer.data.entity.ptr.PtrUser;
+import com.io.portainer.service.sys.SysLogService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -25,6 +27,10 @@ public class GpuApplyHandler extends BusinessHandler {
 
     @Autowired
     WosSysConnector wosSysConnector;
+
+    @Autowired
+    SysLogService sysLogService;
+
 
     @Override
     protected String getBusinessCode() {
@@ -48,7 +54,7 @@ public class GpuApplyHandler extends BusinessHandler {
             ptrUser.setUsername(wosUser.getUsername());
             ptrUser.setRemark(wosUser.getRemark());
             // TODO ：设置密码生成
-            ptrUser.setPassword("20210110722021011072");
+            ptrUser.setPassword(PasswordUtil.randomPassword());
 
             try {
                 ptrUserService.addPtrUserToPtr(ptrUser);
@@ -57,6 +63,7 @@ public class GpuApplyHandler extends BusinessHandler {
             }
 
             log.info("学/工号为 ："+ wosUser.getStudentJobId() + "的用户自动创建账户成功");
+            sysLogService.recordLog("添加用户到portainer：" + wosUser.getUsername() , null , "处理用户申请",0 );
 
             // 向工单系统中该用户发送信息
 

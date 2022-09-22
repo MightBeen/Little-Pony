@@ -70,6 +70,7 @@ public class PtrEndpointServiceImpl extends ServiceImpl<PtrEndpointMapper, PtrEn
         return gc;
     }
 
+
     @Override
     public PtrEndpoint getPtrEndpointById(Long id) {
         PtrEndpoint endpoint = this.getById(id);
@@ -115,6 +116,7 @@ public class PtrEndpointServiceImpl extends ServiceImpl<PtrEndpointMapper, PtrEn
             if (ptrResponse.code() == 200) {
                 ptrEndpointList = parser.parseJsonArray(ptrResponse.body().string());
             } else {
+
                 throw new ApiConnectionException("Portainer 连接异常: " + ptrResponse.code());
             }
 

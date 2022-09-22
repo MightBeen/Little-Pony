@@ -80,7 +80,9 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
             "/api/**",
 
-            "/sys/setting/**"
+            "/sys/setting/**",
+            "/sys/log/**"
+
     };
 
 

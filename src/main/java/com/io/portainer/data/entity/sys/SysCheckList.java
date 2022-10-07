@@ -57,7 +57,7 @@ public class SysCheckList implements Serializable{
     /**
      * 相关资源类型
      */
-    private Integer relatedResourceType;
+    private Long relatedEndpointId;
 
     /**
      * 对应等待队列中id

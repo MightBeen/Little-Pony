@@ -22,10 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * <p>
@@ -173,5 +170,15 @@ public class PtrEndpointServiceImpl extends ServiceImpl<PtrEndpointMapper, PtrEn
         }
 
         return newEndpoints;
+    }
+
+    @Override
+    public LocalDateTime nextAvailableDate(PtrEndpoint endpoint) {
+        List<PtrUserEndpoint> ueList = ptrUserEndpointService.list(new QueryWrapper<PtrUserEndpoint>().eq("endpoint_id", endpoint.getId()));
+        if (ueList.isEmpty())
+            return LocalDateTime.now();
+        LocalDateTime res =
+            ueList.stream().min(Comparator.comparing(PtrUserEndpoint::getExpired)).get().getExpired();
+        return res;
     }
 }

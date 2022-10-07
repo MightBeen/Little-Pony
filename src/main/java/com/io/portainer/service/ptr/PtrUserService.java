@@ -6,6 +6,7 @@ import com.io.portainer.data.entity.ptr.PtrUser;
 import com.io.portainer.data.entity.ptr.PtrUserEndpoint;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface PtrUserService extends IService<PtrUser> {
@@ -36,7 +37,7 @@ public interface PtrUserService extends IService<PtrUser> {
      * 根据资源类型自动添加用户访问权限
      * @return : 用户是否已成功添加
      */
-    boolean getEndPointAccessById(PtrUser ptrUser, int resourceType, int day) throws IOException;
+    boolean getEndPointAccessById(PtrUser ptrUser, PtrEndpoint target, int day, LocalDateTime expectDate) throws IOException;
 
     /**
      * 从申请中添加用户

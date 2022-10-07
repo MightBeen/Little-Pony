@@ -10,6 +10,7 @@ import com.io.portainer.common.timer.Checkable;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import reactor.util.annotation.Nullable;
 
 /**
  * <p>
@@ -33,7 +34,7 @@ public class SysWaitList implements Serializable, Checkable {
 
     private Long wosId;
 
-    private Integer resourceType;
+    private Long expectEndpointId;
 
     private Integer applyDays;
 
@@ -44,19 +45,30 @@ public class SysWaitList implements Serializable, Checkable {
      */
     private LocalDateTime created = LocalDateTime.now();
 
-    public SysWaitList(SysCheckList checkList, Integer resourceType, Integer days, Long wosId){
-        this.relatedUserId = checkList.getRelatedUserId();
-        this.remark = checkList.getMessage();
-        this.resourceType = resourceType;
-        this.applyDays = days;
-        this.wosId = wosId;
-    }
+    /**
+     *    用户期望使用时间
+      */
+    @Nullable
+    private LocalDateTime expectDate;
 
     /**
-     * 用于存储最近对应资源用户最近过期时间
+     *      系统对其处理时间;
+     *      默认为用户期望使用时间;
+     *      如果在期望时间内目标资源不可用，则设为目标资源最近可用时间
      */
     @TableField(exist = false)
-    private LocalDateTime Expired;
+    private LocalDateTime expired;
+
+    public SysWaitList(SysCheckList checkList, Long expectEndPointId, Integer days, Long wosId, LocalDateTime expectDate){
+        this.relatedUserId = checkList.getRelatedUserId();
+        this.remark = checkList.getMessage();
+        this.expectEndpointId = expectEndPointId;
+        this.applyDays = days;
+        this.wosId = wosId;
+        this.expectDate = expectDate;
+        this.expired = expectDate;
+    }
+
 
     /**
      * 由于没有更新时间，将创建时间作为更新时间

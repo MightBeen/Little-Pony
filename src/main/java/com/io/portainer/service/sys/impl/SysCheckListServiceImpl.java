@@ -1,6 +1,7 @@
 package com.io.portainer.service.sys.impl;
 
 import com.io.core.common.wrapper.ConstValue;
+import com.io.portainer.data.entity.ptr.PtrEndpoint;
 import com.io.portainer.data.entity.sys.SysCheckList;
 import com.io.portainer.data.entity.sys.SysWaitList;
 import com.io.portainer.mapper.sys.SysCheckListMapper;
@@ -12,6 +13,7 @@ import com.io.portainer.service.sys.SysWaitListService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import reactor.util.annotation.Nullable;
 
 import javax.validation.constraints.NotNull;
 import java.time.LocalDateTime;
@@ -42,16 +44,16 @@ public class SysCheckListServiceImpl extends ServiceImpl<SysCheckListMapper, Sys
      * 将信息加入至等待队列和代办队列
      *
      * @param item
-     * @param resourceType
+     * @param endpoint
      * @param day
      * @return
      */
     @Override
     @Transactional
-    public SysCheckList AddItemToWaitList(@NotNull SysCheckList item, @NotNull Integer resourceType, @NotNull Integer day, @NotNull Long jobId) {
+    public SysCheckList AddItemToWaitList(@NotNull SysCheckList item, @NotNull PtrEndpoint endpoint, @NotNull Integer day, @NotNull Long jobId, @Nullable LocalDateTime expectDate) {
 
         Long waitListID = System.currentTimeMillis() + (long)(100 * Math.random());
-        SysWaitList waitList = new SysWaitList(item, resourceType, day, jobId);
+        SysWaitList waitList = new SysWaitList(item, endpoint.getId(), day, jobId, expectDate);
 
 
         item.setType(ConstValue.WAIT_LIST_TYPE);
@@ -59,6 +61,7 @@ public class SysCheckListServiceImpl extends ServiceImpl<SysCheckListMapper, Sys
 
         waitList.setId(waitListID);
         waitList.setCreated(LocalDateTime.now());
+        waitList.setExpectDate(expectDate == null ? LocalDateTime.now()  : expectDate);
 
         this.save(item);
         sysWaitListService.save(waitList);

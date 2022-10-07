@@ -16,7 +16,6 @@ import com.io.portainer.data.entity.ptr.PtrUserEndpoint;
 import com.io.portainer.data.entity.sys.SysCheckList;
 import com.io.portainer.data.entity.sys.SysWaitList;
 import com.io.portainer.mapper.SysWaitListMapper;
-import com.io.portainer.mapper.sys.SysCheckListMapper;
 import com.io.portainer.service.ptr.PtrEndpointService;
 import com.io.portainer.service.ptr.PtrUserEndpointService;
 import com.io.portainer.service.ptr.PtrUserService;
@@ -54,8 +53,6 @@ public class SysWaitListServiceImpl extends ServiceImpl<SysWaitListMapper, SysWa
     @Autowired
     PtrUserService ptrUserService;
 
-    @Autowired
-    SysCheckListMapper sysCheckListMapper;
 
     @Autowired
     PtrEndpointService ptrEndpointService;
@@ -77,120 +74,67 @@ public class SysWaitListServiceImpl extends ServiceImpl<SysWaitListMapper, SysWa
     public PriorityQueue<Checkable> updateAll() {
         // 获取等待队列中所有项目
         List<SysWaitList> waits = this.list();
-        // 获取各节点信息
-        List<PtrEndpoint> endpoints = ptrEndpointService.getPtrEndpoints();
 
+        // 如果目标资源容量未满，则过期时间不变;
+        // 否则将其设为目标资源最近过期时间
+        for (SysWaitList w : waits) {
+            PtrEndpoint ep = ptrEndpointService.getById(w.getExpectEndpointId());
 
-        for (Integer resourceType : CommonUtils.resourceTypeCodes()) {
-            List<PtrEndpoint> epList = new ArrayList<>();
-            PriorityQueue<SysWaitList> queue = new PriorityQueue<>();
+            LocalDateTime expired = ep.available() ? w.getExpectDate() : ptrEndpointService.nextAvailableDate(ep);
 
-            for (PtrEndpoint ep : endpoints) {
-                if (ep.available(resourceType))
-                    epList.add(ep);
-            }
-
-            for (SysWaitList wl : waits) {
-                if (wl.getResourceType().equals(resourceType))
-                    queue.add(wl);
-            }
-            // 如果不为独占型，则按剩余空间排序，负载均衡
-            if (!resourceType.equals(ConstValue.SINGLE_RESOURCE))
-                epList.sort(Comparator.comparing(PtrEndpoint::getSpace));
-
-            for (int i=epList.size()-1; i>=0; i--) {
-                PtrEndpoint ep = epList.get(i);
-                SysWaitList peek = queue.peek();
-                if (peek == null) {
-                    break;
-                }
-                queue.remove();
-                geEndPointAccess(peek, ep);
-            }
+            w.setExpired(expired);
         }
-        return new PriorityQueue<>();
+
+        PriorityQueue<Checkable> items = new PriorityQueue<>(waits);
+
+        return items;
     }
+//    public PriorityQueue<Checkable> updateAll() {
+//        // 获取等待队列中所有项目
+//        List<SysWaitList> waits = this.list();
+//        // 获取各节点信息
+//        List<PtrEndpoint> endpoints = ptrEndpointService.getPtrEndpoints();
+//
+//
+//        for (Integer resourceType : CommonUtils.resourceTypeCodes()) {
+//            List<PtrEndpoint> epList = new ArrayList<>();
+//            PriorityQueue<SysWaitList> queue = new PriorityQueue<>();
+//
+//            for (PtrEndpoint ep : endpoints) {
+//                if (ep.available(resourceType))
+//                    epList.add(ep);
+//            }
+//
+//            for (SysWaitList wl : waits) {
+//                if (wl.getResourceType().equals(resourceType))
+//                    queue.add(wl);
+//            }
+//            // 如果不为独占型，则按剩余空间排序，负载均衡
+//            if (!resourceType.equals(ConstValue.SINGLE_RESOURCE))
+//                epList.sort(Comparator.comparing(PtrEndpoint::getSpace));
+//
+//            for (int i=epList.size()-1; i>=0; i--) {
+//                PtrEndpoint ep = epList.get(i);
+//                SysWaitList peek = queue.peek();
+//                if (peek == null) {
+//                    break;
+//                }
+//                queue.remove();
+//                geEndPointAccess(peek, ep);
+//            }
+//        }
+//        return new PriorityQueue<>();
+//    }
 
     @Override
     @Transactional
     public void deleteItem(Checkable item) {
+        SysWaitList wl = (SysWaitList) item;
+        PtrEndpoint ep = ptrEndpointService.getPtrEndpointById(wl.getExpectEndpointId());
+        geEndPointAccess(wl, ep);
     }
 
-    @Transactional
-    @Deprecated
-    boolean getAccessForUser(SysWaitList waitList) {
-        log.info("正在处理waitList：" + waitList);
 
-        boolean isSuccess = false;
-
-        Integer resourceType = waitList.getResourceType();
-
-        List<PtrEndpoint> endpoints = ptrEndpointService.getPtrEndpoints();
-
-        String message = "资源类型异常";
-
-        for (PtrEndpoint ep : endpoints) {
-            if (ep.available(resourceType)) {
-                List<Long> userIds = ep.getUserIds();
-                userIds.add(waitList.getRelatedUserId());
-                Response response = null;
-
-                try {
-                    response = portainerConnector.putRequest("/endpoints/" + ep.getId(), CommonUtils.portainerFormatWrapper(userIds));
-                } catch (IOException e) {
-                    log.error(e.getMessage());
-                    message = "Portainer 连接异常";
-                    break;
-                }
-
-                assert response != null;
-                if (response.code() != 200) {
-                    // TODO：通知管理员
-                    String info = response.toString();
-                    response.close();
-//                    throw new PortainerException(info);
-                }
-
-                // 填入ue关系表
-                PtrUserEndpoint chain = new PtrUserEndpoint();
-                chain.setCreated(LocalDateTime.now());
-                chain.setEndpointId(ep.getId());
-                chain.setUserId(waitList.getRelatedUserId());
-
-                // TODO ： 设置过期时间
-                chain.setExpired(LocalDateTime.now().plusDays(waitList.getApplyDays()));
-                ptrUserEndpointService.save(chain);
-
-                isSuccess = true;
-
-                break;
-            }
-        }
-
-        SysCheckList checkList = sysCheckListService
-                .getOne(new QueryWrapper<SysCheckList>().eq("wait_list_id", waitList.getId()));
-        checkList.setUpdated(LocalDateTime.now());
-
-        if (isSuccess) {
-            checkList.setStatus(1);
-        } else {
-            // 如果不存在，则说明出现异常
-            checkList.setType(ConstValue.ERROR_LIST_TYPE);
-            // TODO: 2022/7/15 记入日志，给管理员发送消息
-
-            log.error(message + "： " + resourceType + "-----" + waitList);
-            log.error(message + " ----" + endpoints);
-        }
-
-        // 在数据库中删除这条记录
-        this.removeById(waitList);
-        // 同时更新checkList
-        sysCheckListService.updateById(checkList);
-
-        // TODO: 2022/7/18 给工单系统中对应用户发送信息
-        log.info("处理完成");
-        return isSuccess;
-    }
 
     @Transactional
     void geEndPointAccess(SysWaitList waitList, PtrEndpoint endpoint) {
@@ -198,52 +142,49 @@ public class SysWaitListServiceImpl extends ServiceImpl<SysWaitListMapper, SysWa
 
         boolean isSuccess = false;
 
-        Integer resourceType = waitList.getResourceType();
-
-        List<PtrEndpoint> endpoints = ptrEndpointService.getPtrEndpoints();
 
         String message = "资源类型异常";
 
-        if (endpoint.available(resourceType)) {
-            List<Long> userIds = endpoint.getUserIds();
-            userIds.add(waitList.getRelatedUserId());
-            Response response = null;
 
+        List<Long> userIds = endpoint.getUserIds();
+        userIds.add(waitList.getRelatedUserId());
+        Response response = null;
+
+        try {
+            response = portainerConnector.putRequest("/endpoints/" + endpoint.getId(), CommonUtils.portainerFormatWrapper(userIds));
+        } catch (IOException e) {
+            log.error(e.getMessage());
+            message = "Portainer 连接异常";
+            // TODO: 2022/7/25 新建portainer连接异常
+            throw new HttpException(e.getMessage());
+        }
+
+        assert response != null;
+        if (response.code() != 200) {
+            // TODO：通知管理员
+            String info = null;
             try {
-                response = portainerConnector.putRequest("/endpoints/" + endpoint.getId(), CommonUtils.portainerFormatWrapper(userIds));
+                info = response.body().string();
             } catch (IOException e) {
                 log.error(e.getMessage());
-                message = "Portainer 连接异常";
-                // TODO: 2022/7/25 新建portainer连接异常
+                message = "Portainer 响应异常";
                 throw new HttpException(e.getMessage());
             }
-
-            assert response != null;
-            if (response.code() != 200) {
-                // TODO：通知管理员
-                String info = null;
-                try {
-                    info = response.body().string();
-                } catch (IOException e) {
-                    log.error(e.getMessage());
-                    message = "Portainer 连接异常";
-                    throw new HttpException(e.getMessage());
-                }
-                throw new RuntimeException(info);
-            }
-
-            // 填入ue关系表
-            PtrUserEndpoint chain = new PtrUserEndpoint();
-            chain.setCreated(LocalDateTime.now());
-            chain.setEndpointId(endpoint.getId());
-            chain.setUserId(waitList.getRelatedUserId());
-
-            // TODO ： 设置过期时间
-            chain.setExpired(LocalDateTime.now().plusDays(waitList.getApplyDays()));
-            ptrUserEndpointService.save(chain);
-
-            isSuccess = true;
+            throw new RuntimeException(info);
         }
+
+        // 填入ue关系表
+        PtrUserEndpoint chain = new PtrUserEndpoint();
+        chain.setCreated(LocalDateTime.now());
+        chain.setEndpointId(endpoint.getId());
+        chain.setUserId(waitList.getRelatedUserId());
+
+        // TODO ： 设置过期时间
+        chain.setExpired(LocalDateTime.now().plusDays(waitList.getApplyDays()));
+        ptrUserEndpointService.save(chain);
+
+        isSuccess = true;
+
 
         SysCheckList checkList = sysCheckListService
                 .getOne(new QueryWrapper<SysCheckList>().eq("wait_list_id", waitList.getId()));
@@ -255,8 +196,8 @@ public class SysWaitListServiceImpl extends ServiceImpl<SysWaitListMapper, SysWa
             // 如果不存在，则说明出现异常
             checkList.setType(ConstValue.ERROR_LIST_TYPE);
             // TODO: 2022/7/15 记入日志，给管理员发送消息
-            log.error(message + "： " + resourceType + "-----" + waitList);
-            log.error(message + " ----" + endpoints);
+            log.error(message + "： " + endpoint.getName() + "-----" + waitList);
+//            log.error(message + " ----" + endpoints);
         }
 
         // 在数据库中删除这条记录

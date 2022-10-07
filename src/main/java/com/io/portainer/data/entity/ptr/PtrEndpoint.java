@@ -3,7 +3,6 @@ package com.io.portainer.data.entity.ptr;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.io.core.common.wrapper.ConstValue;
 import com.io.portainer.common.annotation.PtrMapper;
-import com.io.portainer.common.utils.CommonUtils;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -63,11 +62,14 @@ public class PtrEndpoint extends PtrBaseEntity{
     private List<Long> userIds = new ArrayList<>();
 
 
+    public boolean available(){
+        return this.available(this.getResourceType());
+    }
 
     public boolean available(Integer resourceType) {
         return this.getStatus().equals(1)
                 && resourceType.equals(this.getResourceType())
-                && (ConstValue.SINGLE_RESOURCE.equals(this.getResourceType()) || this.getUserIds().size() < this.getCapacity());
+                && this.getSpace() != 0;
     }
 
     public Integer getSpace(){

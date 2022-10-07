@@ -12,7 +12,7 @@ import java.security.SecureRandom;
 public class PasswordUtil {
 
     private static final String lowStr = "abcdefghijklmnopqrstuvwxyz";
-    private static final String specialStr = "~!@#$%^&*()_+/-=[]{};:'<>?.";
+    private static final String specialStr = "!@#$%&";
     private static final String numStr = "0123456789";
 
     // 随机获取字符串字符
@@ -21,22 +21,22 @@ public class PasswordUtil {
         return str.charAt(random.nextInt(str.length()));
     }
 
-    // 随机获取小写字符
+    //小写字符
     private static char getLowChar() {
         return getRandomChar(lowStr);
     }
 
-    // 随机获取大写字符
+    //大写字符
     private static char getUpperChar() {
         return Character.toUpperCase(getLowChar());
     }
 
-    // 随机获取数字字符
+    //数字字符
     private static char getNumChar() {
         return getRandomChar(numStr);
     }
 
-    // 随机获取特殊字符
+    //特殊字符
     private static char getSpecialChar() {
         return getRandomChar(specialStr);
     }

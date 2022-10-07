@@ -8,6 +8,8 @@ import com.io.portainer.service.ptr.PtrUserEndpointService;
 import com.io.portainer.service.ptr.PtrUserService;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.io.IOException;
+
 /**
  * 抽象的业务处理器。spring在创建其子类对象时会将其加入至工厂的集合中
  */
@@ -28,5 +30,5 @@ public abstract class BusinessHandler {
 
     abstract protected String getBusinessCode();
 
-    public abstract ResultWrapper process(WosUser wosUser);
+    public abstract ResultWrapper process(WosUser wosUser) throws IOException;
 }

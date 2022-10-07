@@ -5,6 +5,7 @@ import com.io.portainer.common.exception.WosSysException;
 import com.io.portainer.common.factory.apply.BusinessHandler;
 import com.io.portainer.data.dto.wos.WosUser;
 
+import java.io.IOException;
 import java.util.HashMap;
 
 /**
@@ -13,7 +14,7 @@ import java.util.HashMap;
 public class ApplyHandlerFactory {
     public static final HashMap<String, BusinessHandler> handlerMap = new HashMap<String, BusinessHandler>();
 
-    public static ResultWrapper handleApply(WosUser wosUser){
+    public static ResultWrapper handleApply(WosUser wosUser) throws IOException {
         BusinessHandler handler = handlerMap.get(wosUser.getBusinessType());
         if (handler == null)
             throw new WosSysException("不支持的业务类型：" + wosUser.getBusinessType(), 411);

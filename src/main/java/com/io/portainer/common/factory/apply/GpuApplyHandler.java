@@ -2,20 +2,25 @@ package com.io.portainer.common.factory.apply;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.io.core.common.wrapper.ResultWrapper;
+import com.io.portainer.common.exception.WosSysException;
+import com.io.portainer.common.factory.GpuResourceTypeFactory;
 import com.io.portainer.common.timer.components.UpdateManager;
 import com.io.portainer.common.utils.PasswordUtil;
 import com.io.portainer.common.utils.connect.WosSysConnector;
 import com.io.portainer.data.dto.wos.BusinessType;
 import com.io.portainer.data.dto.wos.WosMessageDto;
 import com.io.portainer.data.dto.wos.WosUser;
+import com.io.portainer.data.entity.ptr.PtrEndpoint;
 import com.io.portainer.data.entity.ptr.PtrUser;
 import com.io.portainer.service.sys.SysLogService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import javax.validation.ValidationException;
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Slf4j
 @Component
@@ -38,8 +43,8 @@ public class GpuApplyHandler extends BusinessHandler {
     }
 
     @Override
-    public ResultWrapper process(WosUser wosUser) {
-// 先执行更新
+    public ResultWrapper process(WosUser wosUser) throws IOException {
+        // 先执行更新
         updateManager.updateByType(PtrUser.class);
 
         PtrUser ptrUser = ptrUserService.getOne(new QueryWrapper<PtrUser>().eq("wos_id",
@@ -53,7 +58,6 @@ public class GpuApplyHandler extends BusinessHandler {
             ptrUser.setCreated(LocalDateTime.now());
             ptrUser.setUsername(wosUser.getUsername());
             ptrUser.setRemark(wosUser.getRemark());
-            // TODO ：设置密码生成
             ptrUser.setPassword(PasswordUtil.randomPassword());
 
             try {
@@ -70,14 +74,24 @@ public class GpuApplyHandler extends BusinessHandler {
             sendNewUserInfo(ptrUser, wosUser.getId());
         }
 
-        try {
-            Boolean res = ptrUserService.getEndPointAccessById(ptrUser, wosUser.getResourceType(), wosUser.getApplyDays());
-        } catch (IOException e) {
-            log.error(e.getMessage());
-        }
+        check(wosUser);
+
+        PtrEndpoint endpoint = ptrEndpointService.getOne(new QueryWrapper<PtrEndpoint>()
+                .eq("name", wosUser.getEndpointName())
+                .eq("resource_type", wosUser.getResourceType()));
+
+        if (endpoint == null)
+            throw new WosSysException("Gpu资源服务器信息填写有误", 409);
+        Boolean res = ptrUserService.getEndPointAccessById(ptrUser, endpoint, wosUser.getApplyDays(),wosUser.getExpectDate());
 
 
         return ResultWrapper.success( "操作成功，申请已在处理",ptrUser);
+    }
+
+    public void check(WosUser wosUser){
+        if (wosUser.getEndpointName() == null)
+            throw new ValidationException("指定节点名称不能为空");
+        GpuResourceTypeFactory.checkResourceTypeCode(wosUser.getResourceType());
     }
 
 

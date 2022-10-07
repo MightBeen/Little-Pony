@@ -1,5 +1,7 @@
 package com.io.portainer.common.config;
 
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -9,7 +11,8 @@ import java.lang.reflect.Field;
  * 管理系统的配置
  */
 @Component
-public class SettingManager {
+@Slf4j
+public class SettingManager implements InitializingBean {
     private SysSetting currentSetting;
 
     @Autowired
@@ -56,5 +59,11 @@ public class SettingManager {
                 e.printStackTrace();
             }
         }
+        log.info("系统配置初始化完成");
+    }
+
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        checkSetting();
     }
 }

@@ -59,13 +59,14 @@ public class CheckManager implements FrequentTickCheck {
             // 如果当前时间大于过期时间
             if(LocalDateTime.now().compareTo(time) >= 0) {
                 // 先执行更新
-                // TODO: 可能的异常处理
-                PriorityQueue<Checkable> priorityQueue = service.updateAll();
+//                PriorityQueue<Checkable> priorityQueue = service.updateAll();
+                updateManager.updateByType(type);
+                PriorityQueue<Checkable> newQueue = dataCache.getPriorityQueue(type);
 
                 // 递归删除
-                this.deleteProcess(service, priorityQueue);
+                this.deleteProcess(service, newQueue);
                 // 再次执行更新
-                updateManager.updateAll();
+                updateManager.updateByType(type, true);
             }
         }
     }

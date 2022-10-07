@@ -105,6 +105,8 @@ public class SysTimerStarter{
                         log.info("======================= 定期执行 ================================");
                         log.info("定期执行：" + key);
                     }
+
+                    // TODO: 2022/9/23 改用调度器
                     threadPool.execute(() -> {
 
                         try {

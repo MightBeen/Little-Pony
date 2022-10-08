@@ -50,6 +50,9 @@ public class PtrUserEndpointServiceImpl extends ServiceImpl<PtrUserEndpointMappe
 
     @Autowired
     SysLogService sysLogService;
+
+    @Autowired
+    PtrUserEndpointMapper ptrUserEndpointMapper;
     /**
      * 顺便会更新节点
      */
@@ -125,4 +128,9 @@ public class PtrUserEndpointServiceImpl extends ServiceImpl<PtrUserEndpointMappe
     }
 
 
+    @Override
+    public PtrUser getUserByEndPoint(PtrEndpoint endpoint) {
+        // TODO: 2022/10/8 implements this method
+        return null;
+    }
 }

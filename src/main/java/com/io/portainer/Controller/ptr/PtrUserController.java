@@ -83,9 +83,10 @@ public class PtrUserController extends PtrBaseController {
                     .list(new QueryWrapper<SysWaitList>().eq("expect_endpoint_id", ep.getId()));
             booked.forEach(wl -> {
                 EndPointUserDetailVo userVO = new EndPointUserDetailVo();
-                userVO.setUpdated(wl.getUpdated().toLocalDate());
-                userVO.setStarted(wl.getCreated().toLocalDate());
-                userVO.setExpired(wl.getExpired().toLocalDate());
+                userVO.setStarted(wl.getExpectDate().toLocalDate());
+                userVO.setUpdated(null);
+                // TODO: 2022/10/9 implements
+                userVO.setExpired(userVO.getStarted().plusDays(wl.getApplyDays()));
                 vo.getBookedList().add(userVO);
             });
 

@@ -16,6 +16,7 @@ public class EndPointDetailVo extends PtrEndpoint {
     public EndPointDetailVo(PtrEndpoint endpoint) {
         this.setId(endpoint.getId());
         this.setName(endpoint.getName());
+        this.setResourceType(endpoint.getResourceType());
         this.setCapacity(endpoint.getCapacity());
         this.setDescription(endpoint.getDescription());
         this.setStatus(endpoint.getStatus());
@@ -23,4 +24,8 @@ public class EndPointDetailVo extends PtrEndpoint {
         this.setCreated(endpoint.getCreated());
     }
 
+    @Override
+    public Integer getSpace(){
+        return Math.max(this.getCapacity() - usingList.size(), 0);
+    }
 }

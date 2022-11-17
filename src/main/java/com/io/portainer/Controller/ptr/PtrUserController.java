@@ -2,6 +2,9 @@ package com.io.portainer.Controller.ptr;
 
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.io.core.common.entity.SysUser;
 import com.io.core.common.wrapper.ResultWrapper;
 import com.io.portainer.common.exception.PortainerException;
 import com.io.portainer.common.factory.ApplyHandlerFactory;
@@ -27,6 +30,7 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @RestController
 @Slf4j
@@ -58,8 +62,32 @@ public class PtrUserController extends PtrBaseController {
     }
 
 
+    @GetMapping("/{id}")
+    public ResultWrapper oneUser(@PathVariable("id") Long id) {
+        PtrUser user = ptrUserService.getById(id);
+        if (user == null) {
+            return ResultWrapper.fail(421, "id不存在");
+        }
+        return ResultWrapper.success(user);
+    }
+
+
+    @GetMapping()
+    public ResultWrapper listUser(Integer pageNumber, Integer amount) {
+        if (pageNumber == null && amount == null) {
+            return ResultWrapper.success(ptrUserService.list());
+        } else if (pageNumber == null || amount == null) {
+            return ResultWrapper.fail(403, "Bad Request");
+        } else {
+            IPage<PtrUser> page = new Page<>(pageNumber, amount);
+            IPage<PtrUser> list = ptrUserService.page(page, new QueryWrapper<PtrUser>());
+            return ResultWrapper.success(list.getRecords());
+        }
+    }
+
     @GetMapping("/use/info/{type}")
-    public ResultWrapper endpointsInfo(@PathVariable String type){
+    public ResultWrapper endpointsInfo(@PathVariable String type) {
+
         List<PtrEndpoint> list = ptrEndpointService.list(new QueryWrapper<PtrEndpoint>().eq("resource_type", type));
         List<EndPointDetailVo> vos = new ArrayList<>();
 
@@ -72,6 +100,7 @@ public class PtrUserController extends PtrBaseController {
                     .list(new QueryWrapper<PtrUserEndpoint>().eq("endpoint_id", ep.getId()));
             using.forEach(ue -> {
                 EndPointUserDetailVo userVo = new EndPointUserDetailVo();
+                userVo.setId(ue.getUserId());
                 userVo.setUpdated(ue.getUpdated().toLocalDate());
                 userVo.setStarted(ue.getCreated().toLocalDate());
                 userVo.setExpired(ue.getExpired().toLocalDate());
@@ -83,7 +112,8 @@ public class PtrUserController extends PtrBaseController {
                     .list(new QueryWrapper<SysWaitList>().eq("expect_endpoint_id", ep.getId()));
             booked.forEach(wl -> {
                 EndPointUserDetailVo userVO = new EndPointUserDetailVo();
-                userVO.setStarted(wl.getExpectDate().toLocalDate());
+                userVO.setId(wl.getRelatedUserId());
+                userVO.setStarted(Objects.requireNonNull(wl.getExpectDate(), "ExpectDate 字段不应该为空").toLocalDate());
                 userVO.setUpdated(null);
                 // TODO: 2022/10/9 implements
                 userVO.setExpired(userVO.getStarted().plusDays(wl.getApplyDays()));

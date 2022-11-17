@@ -2,6 +2,9 @@ package com.io.portainer.service.sys;
 
 import com.io.portainer.data.entity.sys.SysWaitList;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.io.portainer.data.vo.WaitListVo;
+
+import java.util.List;
 
 /**
  * <p>
@@ -13,5 +16,6 @@ import com.baomidou.mybatisplus.extension.service.IService;
  */
 public interface SysWaitListService extends IService<SysWaitList> {
 
+    List<WaitListVo> getWaitLists(Integer pageNumber, Integer amount);
 }
 

@@ -72,12 +72,12 @@ public class PtrEndpoint extends PtrBaseEntity{
                 && this.getSpace() != 0;
     }
 
+    // 独占型资源容量恒为1
+    public Integer getCapacity(){
+        return ConstValue.SINGLE_RESOURCE.equals(this.getResourceType()) ? 1: this.capacity;
+    }
+
     public Integer getSpace(){
-        int capacity;
-        if ((ConstValue.SINGLE_RESOURCE.equals(this.getResourceType())))
-            capacity = 1;
-        else
-            capacity = this.getCapacity();
-        return Math.max(capacity -  this.getUserIds().size(), 0);
+        return Math.max(this.getCapacity() -  this.getUserIds().size(), 0);
     }
 }

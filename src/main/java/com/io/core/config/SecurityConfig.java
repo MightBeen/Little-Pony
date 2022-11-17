@@ -81,7 +81,8 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
             "/api/**",
 
             "/sys/setting/**",
-            "/sys/log/**"
+            "/sys/log/**",
+            "/sys/wait-list/**"
 
     };
 

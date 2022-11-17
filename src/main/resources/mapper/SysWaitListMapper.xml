@@ -1,5 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.io.portainer.mapper.SysWaitListMapper">
+<mapper namespace="com.io.portainer.mapper.sys.SysWaitListMapper">
 
+    <select id="getWaitLists" resultType="com.io.portainer.data.vo.WaitListVo">
+        select sys_wait_list.id, related_user_id, ptr_user.wos_id, expect_endpoint_id, apply_days, ptr_user.remark, ptr_user.created, expect_date, username, student_job_id,
+               ptr_endpoint.name as target_endpoint_name
+        from sys_wait_list join ptr_user on related_user_id = ptr_user.id
+                           join ptr_endpoint  on ptr_endpoint.id = sys_wait_list.expect_endpoint_id
+            LIMIT #{start},#{amount};
+    </select>
+    <select id="listWaitLists" resultType="com.io.portainer.data.vo.WaitListVo">
+        select sys_wait_list.id, related_user_id, ptr_user.wos_id, expect_endpoint_id, apply_days, ptr_user.remark, ptr_user.created, expect_date, username, student_job_id,
+               ptr_endpoint.name as target_endpoint_name
+        from sys_wait_list join ptr_user on related_user_id = ptr_user.id
+                           join ptr_endpoint  on ptr_endpoint.id = sys_wait_list.expect_endpoint_id
+    </select>
 </mapper>

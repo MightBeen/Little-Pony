@@ -2,6 +2,8 @@ package com.io.portainer.service.sys.impl;
 
 import cn.hutool.http.HttpException;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.io.core.common.wrapper.ConstValue;
 import com.io.core.mapper.SysUserMapper;
 import com.io.portainer.common.timer.Checkable;
@@ -15,7 +17,8 @@ import com.io.portainer.data.entity.ptr.PtrUser;
 import com.io.portainer.data.entity.ptr.PtrUserEndpoint;
 import com.io.portainer.data.entity.sys.SysCheckList;
 import com.io.portainer.data.entity.sys.SysWaitList;
-import com.io.portainer.mapper.SysWaitListMapper;
+import com.io.portainer.data.vo.WaitListVo;
+import com.io.portainer.mapper.sys.SysWaitListMapper;
 import com.io.portainer.service.ptr.PtrEndpointService;
 import com.io.portainer.service.ptr.PtrUserEndpointService;
 import com.io.portainer.service.ptr.PtrUserService;
@@ -68,6 +71,9 @@ public class SysWaitListServiceImpl extends ServiceImpl<SysWaitListMapper, SysWa
 
     @Autowired
     SysUserMapper sysUserMapper;
+
+    @Autowired
+    SysWaitListMapper sysWaitListMapper;
 
     @Override
     @Transactional
@@ -135,6 +141,17 @@ public class SysWaitListServiceImpl extends ServiceImpl<SysWaitListMapper, SysWa
     }
 
 
+    @Override
+    public List<WaitListVo> getWaitLists(Integer pageNumber, Integer amount) {
+        if (pageNumber == null || amount == null) {
+            return sysWaitListMapper.listWaitLists();
+        }
+        return getWaitListsProcess(pageNumber, amount);
+    }
+
+    private List<WaitListVo> getWaitListsProcess(Integer pageNumber, Integer amount) {
+        return sysWaitListMapper.getWaitLists((pageNumber - 1) * amount, amount);
+    }
 
     @Transactional
     void geEndPointAccess(SysWaitList waitList, PtrEndpoint endpoint) {

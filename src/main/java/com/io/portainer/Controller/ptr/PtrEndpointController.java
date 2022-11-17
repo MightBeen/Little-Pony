@@ -23,5 +23,8 @@ import java.util.List;
 @RequestMapping("/api/ptr/endpoint")
 public class PtrEndpointController extends PtrBaseController {
 
-
+    @GetMapping
+    public ResultWrapper list(){
+        return ResultWrapper.success(ptrEndpointService.getPtrEndpoints());
+    }
 }

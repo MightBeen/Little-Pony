@@ -10,11 +10,12 @@
     </select>
 
     <select id="listByMenuId" resultType="com.io.core.common.entity.SysUser">
-        SELECT DISTINCT su.*
-        FROM sys_user_role ur
-                 LEFT JOIN sys_role_menu rm
-                           ON ur.role_id = rm.role_id
-                 LEFT JOIN sys_user su on ur.user_id = su.id
+        SELECT DISTINCT SU.*
+        FROM sys_user_role UR
+                 LEFT JOIN sys_role_menu RM
+                           ON UR.role_id = RM.role_id
+                 LEFT JOIN sys_user SU
+                           ON UR.user_id = SU.id
         WHERE RM.menu_id = #{menuId};
     </select>
 
